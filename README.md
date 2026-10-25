@@ -1,5 +1,7 @@
 # JavaScript Interview Prep — course materials
 
+**Live site: https://yaffalhakim1.github.io/js-interview-prep/**
+
 A 19-topic course covering the 3-month front-end JavaScript interview plan.
 No subscription, no build step to read it, no internet needed.
 
@@ -9,9 +11,23 @@ All three are generated from one source, so they never disagree.
 
 | Edition | Open this | Good for |
 |---|---|---|
+| **Live site** | https://yaffalhakim1.github.io/js-interview-prep/ | Running the code, any device |
 | **PDF** | `JavaScript-Interview-Prep.pdf` | Reading before sleep, printing, phone offline |
-| **HTML** | `html/index.html` | Running the code, dark mode, progress tracking |
+| **HTML locally** | `html/index.html` | Working offline, editing |
 | **Markdown** | `COURSE.md` or `md/index.md` | Reading in an editor, searching, copying code |
+
+## Deployment
+
+The site is published to GitHub Pages by `.github/workflows/deploy.yml` on every
+push to `main`. The workflow:
+
+1. runs `html/smoke-test.js`, so a broken snippet fails the deploy
+2. rebuilds the markdown and checks it against the HTML
+3. copies the HTML pages to `_site/`, plus the PDF and markdown under `download/`
+4. writes `.nojekyll` and uploads the artifact
+
+To deploy your own copy: fork, then enable Pages with source "GitHub Actions" in
+Settings → Pages.
 
 ## The 19 topics
 
