@@ -1,0 +1,14 @@
+# Build output and local tooling that should not be published.
+node_modules/
+_site/
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Local-only artefacts
+toc-pages.json.tmp
+*.log

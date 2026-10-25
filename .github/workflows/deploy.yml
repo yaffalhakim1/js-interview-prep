@@ -1,0 +1,92 @@
+name: Deploy to GitHub Pages
+
+# Builds the markdown and PDF editions, then publishes the HTML course.
+#
+# The HTML pages are the source of truth, so publishing is mostly a copy.
+# The markdown and PDF are rebuilt here too, so the downloadable copies in the
+# published site never fall behind the pages.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let one deploy finish before starting another, but do not cancel a run in
+# progress: a half-published site is worse than a slightly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Fails the deploy if a code snippet throws or the markdown drifts.
+      - name: Check code snippets
+        working-directory: html
+        run: node smoke-test.js
+
+      - name: Build markdown
+        run: |
+          node tools/build-md.js
+          node tools/check-md.js
+
+      - name: Assemble site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+
+          # The interactive course
+          cp -r html/* _site/
+          # Do not publish the build tooling
+          rm -f _site/build-print.js _site/smoke-test.js _site/mobile-audit.js
+          rm -rf _site/print
+
+          # Downloadable editions
+          mkdir -p _site/download
+          cp COURSE.md _site/download/COURSE.md
+          cp -r md _site/download/md
+
+          # A PDF is only present if it was committed; regenerate is a no-op here
+          if [ -f JavaScript-Interview-Prep.pdf ]; then
+            cp JavaScript-Interview-Prep.pdf _site/download/
+          fi
+
+      - name: Write a landing redirect
+        run: |
+          # /index.html is the course home already, so nothing to do unless the
+          # file is missing.
+          test -f _site/index.html
+
+      - name: Add .nojekyll
+        run: |
+          # Jekyll would otherwise ignore files starting with an underscore and
+          # add processing time. We ship static files, so turn it off.
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

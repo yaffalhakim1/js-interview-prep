@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Types and conversion · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="types">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 1 · Language basics</p>
+    <h1>Types and conversion</h1>
+    <p class="lead">
+      JavaScript has seven simple types and one object type. But
+      <code>typeof</code> gives a wrong answer for two of them. And <code>==</code>
+      converts values before comparing. Both cause confident wrong answers in
+      interviews, so this page gives you the exact rules.
+    </p>
+
+    <h2 id="kinds">The types</h2>
+    <p>
+      Seven simple types: <code>string</code>, <code>number</code>,
+      <code>boolean</code>, <code>null</code>, <code>undefined</code>,
+      <code>symbol</code>, <code>bigint</code>. Everything else is an object.
+      That includes arrays, functions, dates and maps.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Value</th><th><code>typeof</code> gives</th><th>Best way to check</th></tr></thead>
+        <tbody>
+          <tr><td><code>"hi"</code></td><td><code>"string"</code></td><td><code>typeof</code></td></tr>
+          <tr><td><code>42</code></td><td><code>"number"</code></td><td><code>typeof</code></td></tr>
+          <tr><td><code>NaN</code></td><td><code>"number"</code></td><td><code>Number.isNaN(x)</code></td></tr>
+          <tr><td><code>true</code></td><td><code>"boolean"</code></td><td><code>typeof</code></td></tr>
+          <tr><td><code>undefined</code></td><td><code>"undefined"</code></td><td><code>x === undefined</code></td></tr>
+          <tr><td><code>null</code></td><td><code>"object"</code> (a bug)</td><td><code>x === null</code></td></tr>
+          <tr><td><code>Symbol()</code></td><td><code>"symbol"</code></td><td><code>typeof</code></td></tr>
+          <tr><td><code>10n</code></td><td><code>"bigint"</code></td><td><code>typeof</code></td></tr>
+          <tr><td><code>[]</code></td><td><code>"object"</code></td><td><code>Array.isArray(x)</code></td></tr>
+          <tr><td><code>{}</code></td><td><code>"object"</code></td><td><code>Object.prototype.toString.call(x)</code></td></tr>
+          <tr><td><code>function(){}</code></td><td><code>"function"</code></td><td><code>typeof</code></td></tr>
+          <tr><td><code>new Date()</code></td><td><code>"object"</code></td><td><code>x instanceof Date</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      <code>typeof null === "object"</code> is a bug from 1995. It was kept because
+      too much old code depends on it. Say that and you show you know it is not a
+      design choice.
+    </p>
+
+    <h3>A check that works for almost everything</h3>
+    <div class="codeblock">
+      <div class="bar"><span class="label">tag.js</span><span class="spacer"></span></div>
+<pre data-run><code>function tag(v) {
+  return Object.prototype.toString.call(v).slice(8, -1);
+}
+
+console.log(tag([]), tag({}), tag(null), tag(undefined));
+console.log(tag(new Map()), tag(new Set()), tag(/x/), tag(new Date()));
+console.log(tag(Promise.resolve()), tag(function () {}));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>Checking for an array</h4>
+        <p>
+          <code>typeof []</code> is <code>"object"</code>. And
+          <code>[] instanceof Array</code> fails across iframes. That is exactly
+          why <code>Array.isArray</code> exists.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="boxing">Simple values act like objects</h2>
+    <p>
+      <code>"abc".length</code> works even though a string is not an object.
+      JavaScript wraps it in a <code>String</code> object for a moment, reads the
+      property, then throws the wrapper away.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">boxing.js</span><span class="spacer"></span></div>
+<pre data-run><code>// Reading works: the engine wraps the string for a moment
+const s = "abc";
+console.log("length:", s.length);
+console.log("method:", s.toUpperCase());
+
+// Writing fails in strict mode, because the wrapper is thrown away
+try {
+  s.custom = 1;
+} catch (e) {
+  console.log("cannot add a property:", e.name);
+}
+console.log("still undefined:", s.custom);
+
+// A real String object keeps properties
+const o = new String("abc");
+o.custom = 1;
+console.log("object keeps it:", o.custom);
+console.log("types differ:", typeof s, "vs", typeof o);
+console.log("loose equal:", s == o, "· strict equal:", s === o);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      This is also why <code>new Boolean(false)</code> is a trap. It is an object,
+      and every object counts as true. So <code>if (new Boolean(false))</code>
+      runs the branch.
+    </p>
+
+    <h2 id="equality">== vs ===</h2>
+    <p>
+      <code>===</code> checks the type first. Different types means
+      <code>false</code> straight away. <code>==</code> converts the values to the
+      same type first. The rules are fixed, not random.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Comparison</th><th>What happens</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td><code>null == undefined</code></td><td>special case: equal to each other only</td><td><code>true</code></td></tr>
+          <tr><td><code>null == 0</code></td><td><code>null</code> is never converted</td><td><code>false</code></td></tr>
+          <tr><td><code>1 == "1"</code></td><td>string becomes a number</td><td><code>true</code></td></tr>
+          <tr><td><code>"" == 0</code></td><td>empty string becomes 0</td><td><code>true</code></td></tr>
+          <tr><td><code>[] == false</code></td><td><code>[]</code> becomes <code>""</code>, then <code>0</code></td><td><code>true</code></td></tr>
+          <tr><td><code>[1] == 1</code></td><td><code>[1]</code> becomes <code>"1"</code>, then <code>1</code></td><td><code>true</code></td></tr>
+          <tr><td><code>NaN == NaN</code></td><td>NaN never equals anything</td><td><code>false</code></td></tr>
+          <tr><td><code>{} == {}</code></td><td>two different objects</td><td><code>false</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">try it</span><span class="spacer"></span></div>
+<pre data-run><code>const pairs = [
+  [null, undefined], [null, 0], [0, ""], ["0", false],
+  [[], false], [[1], 1]
+];
+
+for (const [a, b] of pairs) {
+  console.log(
+    JSON.stringify(a) + " == " + JSON.stringify(b) +
+    " → " + (a == b) + "   (strict: " + (a === b) + ")"
+  );
+}</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>The one exception people allow</h4>
+        <p>
+          <code>x == null</code> is a common way to say "null or undefined". That
+          is accepted. For everything else, use <code>===</code>. If the types
+          differ, fix the types instead of comparing them.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="truthy">Which values count as false</h2>
+    <p>There are exactly eight. Everything else counts as true.</p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">falsy.js</span><span class="spacer"></span></div>
+<pre data-run><code>const falsy = [false, 0, -0, 0n, "", null, undefined, NaN];
+console.log("all count as false:", falsy.every((v) =&gt; !v));
+console.log("how many:", falsy.length);
+
+// The surprises
+console.log("[] is true:", Boolean([]));
+console.log("{} is true:", Boolean({}));
+console.log('"0" is true:', Boolean("0"));
+console.log('" " is true:', Boolean(" "));
+console.log("new Boolean(false) is true:", Boolean(new Boolean(false)));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      A common bug: <code>if (value)</code> where <code>0</code> and
+      <code>""</code> are valid input. Use
+      <code>value !== undefined &amp;&amp; value !== null</code> when 0 and empty
+      string are allowed.
+    </p>
+
+    <h2 id="ops">Operators that convert values</h2>
+    <h3><code>+</code> prefers strings</h3>
+    <div class="codeblock">
+      <div class="bar"><span class="label">plus.js</span><span class="spacer"></span></div>
+<pre data-run><code>console.log(1 + 2);        // 3
+console.log(1 + "2");      // "12", the string wins
+console.log("1" + 2 + 3);  // "123", works left to right
+console.log(1 + 2 + "3");  // "33"
+console.log([] + {});      // "[object Object]"
+console.log([1] + [2]);    // "12"</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h3>The others prefer numbers</h3>
+    <p>
+      <code>-</code>, <code>*</code>, <code>/</code> and <code>%</code> turn both
+      sides into numbers. So <code>"6" / "2"</code> is <code>3</code>. That is why
+      <code>+</code> is the dangerous one.
+    </p>
+
+    <h3><code>NaN</code> spreads through maths</h3>
+    <div class="codeblock">
+      <div class="bar"><span class="label">nan.js</span><span class="spacer"></span></div>
+<pre data-run><code>console.log(Number("abc"));          // NaN
+console.log(parseInt("12px"));       // 12, stops at the first non-digit
+console.log(Number("12px"));         // NaN, strict
+
+console.log("NaN equals itself?", NaN === NaN);      // false
+console.log("Object.is fixes it:", Object.is(NaN, NaN));  // true
+console.log("Object.is sees -0:", Object.is(0, -0));      // false
+console.log("includes finds NaN:", [NaN].includes(NaN));  // true</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h2 id="numbers">Number problems worth knowing</h2>
+    <ul>
+      <li><code>0.1 + 0.2 !== 0.3</code>. This is normal for decimal numbers in binary. Compare with a small tolerance instead.</li>
+      <li><code>Number.MAX_SAFE_INTEGER</code> is about 9 quadrillion. Bigger integers lose precision. Use <code>BigInt</code> for money or long IDs.</li>
+      <li>Always pass a base: <code>parseInt(x, 10)</code>.</li>
+      <li><code>Number("")</code> is <code>0</code>, not <code>NaN</code>. That is a validation trap.</li>
+      <li><code>1 / 0</code> is <code>Infinity</code>. <code>Infinity - Infinity</code> is <code>NaN</code>.</li>
+    </ul>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="reveal">
+      <summary>Why is <code>[] == false</code> true?</summary>
+      <div class="body">
+        <p>
+          <code>false</code> becomes <code>0</code>. The array becomes
+          <code>""</code> through <code>toString()</code>, and <code>""</code>
+          becomes <code>0</code>. So it is <code>0 == 0</code>.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Write a function that checks for a plain object.</summary>
+      <div class="body">
+<pre>function isPlainObject(v) {
+  if (v === null || typeof v !== "object") return false;
+  const proto = Object.getPrototypeOf(v);
+  return proto === Object.prototype || proto === null;
+}</pre>
+        <p>
+          Checking the prototype is better than checking the tag. It rejects
+          arrays, maps, and class instances on purpose.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>When should you use <code>Object.is</code> instead of <code>===</code>?</summary>
+      <div class="body">
+        <p>
+          Two cases only: to detect <code>NaN</code>, and to tell
+          <code>+0</code> from <code>-0</code>. Otherwise it behaves the same.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

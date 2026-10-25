@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>classnames and JSON · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="utilities">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 2 · Coding questions</p>
+    <h1>classnames and JSON</h1>
+    <p class="lead">
+      Two small helpers that appear as "write this library function" questions. One
+      teaches API design. The other walks through the rules of turning data into
+      text, which people get wrong for years.
+    </p>
+
+    <h2 id="classnames">classnames</h2>
+    <p>
+      The job: take strings, arrays and objects, and return one string of class
+      names. It exists because
+      <code>`${on ? "a" : ""} ${off ? "b" : ""}`</code> is hard to read.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">classNames.js</span><span class="spacer"></span></div>
+<pre data-run><code>function classNames(...args) {
+  const out = [];
+
+  function walk(value) {
+    if (!value) return;                    // skip false, null, undefined, "", 0
+
+    if (typeof value === "string" || typeof value === "number") {
+      out.push(String(value));
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) walk(item);   // handles nested arrays
+      return;
+    }
+
+    if (typeof value === "object") {
+      for (const [key, on] of Object.entries(value)) {
+        if (on) out.push(key);               // { active: true } gives "active"
+      }
+    }
+  }
+
+  for (const arg of args) walk(arg);
+  return out.join(" ");
+}
+
+console.log(classNames("btn", "btn-primary"));
+console.log(classNames("btn", false, null, undefined, 0, "", "active"));
+console.log(classNames("btn", { active: true, disabled: false }));
+console.log(classNames(["btn", ["nested", { deep: 1 }]]));
+console.log("nothing at all:", JSON.stringify(classNames()));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h3>Details that earn credit</h3>
+    <ul>
+      <li><strong>Numbers can be class names.</strong> <code>classNames(0)</code> gives <code>""</code>, but <code>classNames(42)</code> gives <code>"42"</code>. That is why the false check comes before the number branch.</li>
+      <li><strong>Objects are checked by their values, arrays by their items.</strong> Both can nest.</li>
+      <li><strong>The original does not remove duplicates.</strong> If you add that, say so. It changes behaviour when a class appears twice on purpose.</li>
+      <li><strong>Return <code>""</code>, not <code>undefined</code>.</strong> Joining <code>undefined</code> into a string gives the word "undefined".</li>
+    </ul>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">version without duplicates</span><span class="spacer"></span></div>
+<pre data-run><code>function classNamesUnique(...args) {
+  const seen = new Set();
+  const out = [];
+
+  function walk(value) {
+    if (!value) return;
+
+    if (typeof value === "string" || typeof value === "number") {
+      for (const token of String(value).split(/\s+/)) {
+        if (token &amp;&amp; !seen.has(token)) {
+          seen.add(token);
+          out.push(token);
+        }
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) return value.forEach(walk);
+
+    if (typeof value === "object") {
+      for (const [k, on] of Object.entries(value)) if (on) walk(k);
+    }
+  }
+
+  args.forEach(walk);
+  return out.join(" ");
+}
+
+// Note the split on spaces: "a  b" becomes two names, not one
+console.log(classNamesUnique("a a", "b", ["a", "c"]));
+console.log(classNamesUnique("p-4  m-2"));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h2 id="json-stringify">JSON.stringify rules</h2>
+    <p>Six rules cover almost every question.</p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">stringify-rules.js</span><span class="spacer"></span></div>
+<pre data-run><code>// 1. undefined, functions and symbols are left out of objects…
+console.log(JSON.stringify({ a: 1, b: undefined, c: () =&gt; 1, d: Symbol("s") }));
+
+// …but become null inside arrays
+console.log(JSON.stringify([1, undefined, () =&gt; 1, Symbol("s")]));
+
+// 2. NaN and Infinity become null
+console.log(JSON.stringify({ n: NaN, i: Infinity, neg: -0 }));
+
+// 3. Dates turn into text
+console.log(JSON.stringify({ d: new Date(0) }));
+
+// 4. Any object can decide its own output with toJSON
+console.log(JSON.stringify({
+  value: 42,
+  toJSON() { return { wrapped: this.value }; }
+}));
+
+// 5. BigInt throws
+try { JSON.stringify({ big: 10n }); }
+catch (e) { console.log("BigInt:", e.name); }
+
+// 6. Objects that contain themselves throw
+const a = {}; a.self = a;
+try { JSON.stringify(a); } catch (e) { console.log("self-reference:", e.name); }</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h3>The replacer argument</h3>
+    <div class="codeblock">
+      <div class="bar"><span class="label">replacer.js</span><span class="spacer"></span></div>
+<pre data-run><code>const user = { id: 1, password: "hunter2", name: "ada", meta: { token: "abc" } };
+
+// A function replacer: return undefined to drop a key
+const safe = JSON.stringify(user, (key, value) =&gt;
+  key === "password" || key === "token" ? undefined : value
+);
+console.log(safe);
+
+// An array replacer: only keep these keys, at every level
+console.log(JSON.stringify(user, ["id", "name"]));
+
+// A safe version that handles self-references
+function safeStringify(value, indent = 2) {
+  const seen = new WeakSet();
+  return JSON.stringify(value, function (key, val) {
+    if (typeof val === "object" &amp;&amp; val !== null) {
+      if (seen.has(val)) return "[Circular]";
+      seen.add(val);
+    }
+    return val;
+  }, indent);
+}
+
+const cyclic = { name: "root" };
+cyclic.self = cyclic;
+console.log(safeStringify(cyclic));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>Key order is not what you typed</h4>
+        <p>
+          Number-like keys always come first, in ascending order. Only then do the
+          string keys follow in the order you added them. If order matters, use a
+          <code>Map</code> or an array of pairs.
+        </p>
+      </div>
+    </div>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">key-order.js</span><span class="spacer"></span></div>
+<pre data-run><code>const obj = { b: 1, 2: "two", a: 2, 1: "one" };
+console.log("keys:", Object.keys(obj));      // numbers first
+console.log("as JSON:", JSON.stringify(obj));
+
+// A Map keeps the real order
+const m = new Map([["b", 1], [2, "two"], ["a", 2]]);
+console.log("map keys:", [...m.keys()]);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h2 id="json-parse">JSON.parse and the reviver</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">reviver.js</span><span class="spacer"></span></div>
+<pre data-run><code>const payload = '{"id":"7","created":"2024-05-01T00:00:00.000Z","tags":"a,b"}';
+
+const parsed = JSON.parse(payload, (key, value) =&gt; {
+  if (key === "created") return new Date(value);   // text back into a Date
+  if (key === "id") return Number(value);
+  if (key === "tags") return value.split(",");
+  return value;
+});
+
+console.log(parsed);
+console.log("types are back:", parsed.created instanceof Date,
+  typeof parsed.id, Array.isArray(parsed.tags));
+
+// Invalid JSON throws
+try { JSON.parse("{'a':1}"); }        // single quotes are not valid JSON
+catch (e) { console.log("bad JSON:", e.name); }
+
+console.log("simple values:", JSON.parse("1"), JSON.parse('"x"'), JSON.parse("null"));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>The sentence that closes the topic</h4>
+        <p>
+          "JSON is a format for sending data, not a way to copy it. If I need a copy
+          in memory, I use <code>structuredClone</code>. If I am sending data, I
+          decide the shape on purpose. And I never send a <code>Date</code> without
+          choosing a format for it first."
+        </p>
+      </div>
+    </div>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="quiz">
+      <summary>What is <code>JSON.stringify([undefined, function(){}])</code>?</summary>
+      <div class="opts">
+        <div class="opt correct"><span class="mark">A</span> <code>"[null,null]"</code></div>
+        <div class="opt"><span class="mark">B</span> <code>"[]"</code></div>
+        <div class="opt"><span class="mark">C</span> <code>"[undefined,null]"</code></div>
+      </div>
+      <div class="body"><p>Inside arrays, values that cannot be turned into JSON become <code>null</code>, so the positions stay. Inside objects they are simply left out.</p></div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why does <code>JSON.stringify</code> throw on BigInt instead of converting?</summary>
+      <div class="body">
+        <p>
+          Because turning it into a normal number could lose precision. JSON has no
+          integer type bigger than what JavaScript numbers hold. Throwing forces you
+          to choose, and most people choose to send it as a string.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>What do <code>classNames(0)</code> and <code>classNames("0")</code> return?</summary>
+      <div class="body">
+        <p>
+          <code>""</code> and <code>"0"</code>. The number 0 counts as false, so it
+          is dropped. The string "0" counts as true, so it is kept. That is why the
+          false check must come before the number branch.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

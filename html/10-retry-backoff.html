@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retry with backoff · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="retry">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 2 · Coding questions</p>
+    <h1>Retry with backoff</h1>
+    <p class="lead">
+      A small helper that shows whether you have run real code. The code is short.
+      The judgement is in three questions. What should be retried? How long are you
+      willing to wait? How does the caller stop it?
+    </p>
+
+    <h2 id="baseline">Start simple</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">retry-naive.js</span><span class="spacer"></span></div>
+<pre data-run><code>const sleep = (ms) =&gt; new Promise((r) =&gt; setTimeout(r, ms));
+
+async function retry(fn, tries = 3, delay = 100) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (tries &lt;= 0) throw err;
+    await sleep(delay);
+    return retry(fn, tries - 1, delay);   // same delay every time
+  }
+}
+
+let attempt = 0;
+const flaky = async () =&gt; {
+  attempt++;
+  if (attempt &lt; 3) throw new Error("attempt " + attempt + " failed");
+  return "worked on attempt " + attempt;
+};
+
+retry(flaky, 3, 50)
+  .then(console.log)
+  .catch((e) =&gt; console.log("gave up:", e.message));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      It works. What is wrong for real use: the same delay hammers a server that is
+      already struggling, there is no limit on total time, the caller cannot stop
+      it, and it retries errors that will never succeed, like a 404.
+    </p>
+
+    <h2 id="backoff">Backoff means waiting longer each time</h2>
+    <p>
+      The delay doubles: 100ms, 200ms, 400ms, 800ms. Add a maximum so the wait
+      never gets silly.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Try</th><th>Delay (start 100ms, doubling)</th><th>With a 1000ms cap</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td class="num">100ms</td><td class="num">100ms</td></tr>
+          <tr><td class="num">2</td><td class="num">200ms</td><td class="num">200ms</td></tr>
+          <tr><td class="num">3</td><td class="num">400ms</td><td class="num">400ms</td></tr>
+          <tr><td class="num">4</td><td class="num">800ms</td><td class="num">800ms</td></tr>
+          <tr><td class="num">5</td><td class="num">1600ms</td><td class="num">1000ms</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Why add randomness</h3>
+    <p>
+      If a thousand users fail at the same moment, they all retry at the same
+      moment. The server gets hit again and stays down. Adding a random amount
+      spreads them out. That is called jitter.
+    </p>
+    <ul>
+      <li><strong>Full jitter:</strong> a random time between 0 and the delay. Spreads the most.</li>
+      <li><strong>Equal jitter:</strong> half the delay plus a random part. Keeps a minimum wait.</li>
+      <li><strong>Decorrelated:</strong> a random time between the base and three times the last delay. For long-running clients.</li>
+    </ul>
+
+    <h2 id="full">The version to write in an interview</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">retry.js</span><span class="spacer"></span></div>
+<pre data-run><code>const sleep = (ms, signal) =&gt; new Promise((resolve, reject) =&gt; {
+  const t = setTimeout(resolve, ms);
+  signal?.addEventListener("abort", () =&gt; {
+    clearTimeout(t);
+    reject(new Error("aborted"));
+  }, { once: true });
+});
+
+async function retry(fn, {
+  tries = 3,
+  baseDelay = 100,
+  factor = 2,
+  maxDelay = 5000,
+  jitter = true,
+  shouldRetry = () =&gt; true,
+  onRetry = () =&gt; {},
+  signal,
+} = {}) {
+  let attempt = 0;
+
+  for (;;) {
+    try {
+      return await fn(attempt);
+    } catch (err) {
+      if (signal?.aborted) throw err;
+      if (attempt &gt;= tries) throw err;
+      if (!shouldRetry(err, attempt)) throw err;
+
+      const raw = Math.min(baseDelay * factor ** attempt, maxDelay);
+      const wait = jitter ? Math.random() * raw : raw;
+
+      attempt++;
+      onRetry(err, attempt, wait);
+      await sleep(wait, signal);
+    }
+  }
+}
+
+// ── try it ──────────────────────────────────────────────
+let n = 0;
+const flaky = async () =&gt; {
+  n++;
+  if (n &lt; 4) {
+    const err = new Error("server said 503");
+    err.status = 503;
+    throw err;
+  }
+  return "worked on attempt " + n;
+};
+
+retry(flaky, {
+  tries: 5,
+  baseDelay: 40,
+  jitter: false,
+  shouldRetry: (err) =&gt; err.status &gt;= 500,   // never retry a 404
+  onRetry: (err, attempt, wait) =&gt;
+    console.log("retry " + attempt + " in " + wait + "ms after: " + err.message),
+})
+  .then((v) =&gt; console.log(v))
+  .catch((e) =&gt; console.log("failed:", e.message));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>Five things this version gets right</h4>
+        <ul>
+          <li><strong>It stops.</strong> There is a limit on tries and on the delay.</li>
+          <li><strong>It is picky.</strong> <code>shouldRetry</code> keeps 404s and code bugs out of the loop.</li>
+          <li><strong>It tells you.</strong> <code>onRetry</code> lets the caller log or show progress.</li>
+          <li><strong>It can be stopped.</strong> The <code>signal</code> also interrupts the wait, not just the request.</li>
+          <li><strong>It adds randomness</strong>, so many clients do not retry together.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 id="cancel">Stopping the wait matters too</h2>
+    <p>
+      Cancelling only the request is not enough. A pending <code>sleep</code> keeps
+      the loop alive, and the function will call <code>fn</code> again after the
+      caller has moved on. Passing the signal into the sleep is what makes stopping
+      instant.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">abort.js</span><span class="spacer"></span></div>
+<pre data-run><code>const sleep = (ms, signal) =&gt; new Promise((resolve, reject) =&gt; {
+  const t = setTimeout(resolve, ms);
+  signal.addEventListener("abort", () =&gt; {
+    clearTimeout(t);
+    reject(new Error("aborted"));
+  }, { once: true });
+});
+
+const controller = new AbortController();
+setTimeout(() =&gt; controller.abort(), 30);
+
+sleep(500, controller.signal)
+  .then(() =&gt; console.log("waited the full time"))
+  .catch((e) =&gt; console.log("wait interrupted:", e.message));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h2 id="judgement">The judgement questions</h2>
+
+    <details class="reveal">
+      <summary>What must never be retried blindly?</summary>
+      <div class="body">
+        <p>
+          Actions that change something: charging a card, creating an order,
+          sending an email. A retry after a timeout can do the action twice. The fix
+          is a unique id the server can recognise, not a loop in the browser.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>How do you stop the total wait getting too long?</summary>
+      <div class="body">
+        <p>
+          Work out the budget first. Five tries with a 100ms start and doubling is
+          about 3.1 seconds, plus request time. Either limit the number of tries,
+          limit the delay, or pass a deadline and stop when it passes. In a browser
+          the real deadline is the user's patience. Show a spinner and a cancel
+          button.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Should the browser retry, or the server?</summary>
+      <div class="body">
+        <p>
+          Both, for different problems. The browser handles a brief network blip.
+          The server handles a failing service behind it, using a queue. A browser
+          should not be the safety net for a flaky backend. It should fail and let
+          the user try again on purpose.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>How do you test it without real waiting?</summary>
+      <div class="body">
+        <p>
+          Fake timers. Check how many times it ran, the order of the delays, that
+          <code>shouldRetry</code> was asked, and that stopping it prevents more
+          tries. Also test the case where it works first time. The loop must not
+          wait at all.
+        </p>
+      </div>
+    </details>
+
+    <div class="callout say">
+      <span class="ic">”</span>
+      <div>
+        <h4>Say this in an interview</h4>
+        <p>
+          "I'd use backoff that doubles, with a random part and a maximum delay. I'd
+          only retry failures worth retrying: network errors and 5xx. I'd accept an
+          AbortSignal so the wait itself can be cancelled. For actions that change
+          data, I'd add a unique id instead of retrying blindly."
+        </p>
+      </div>
+    </div>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="quiz">
+      <summary>Why add randomness to the delay?</summary>
+      <div class="opts">
+        <div class="opt"><span class="mark">A</span> To make the average wait shorter</div>
+        <div class="opt correct"><span class="mark">B</span> So many clients do not retry at the same moment</div>
+        <div class="opt"><span class="mark">C</span> To make tests repeatable</div>
+      </div>
+      <div class="body"><p>It spreads them out. Repeatable tests are the opposite of what randomness gives you.</p></div>
+    </details>
+
+    <details class="reveal">
+      <summary>What is wrong with <code>retry(() =&gt; fetch(url))</code> when the server returns 404?</summary>
+      <div class="body">
+        <p>
+          <code>fetch</code> only fails on network problems. A 404 is a normal
+          response, so the retry never starts. And if you add a status check that
+          throws, you will retry a permanent 404 three times. Check the status and
+          only retry 408, 429 and 5xx.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

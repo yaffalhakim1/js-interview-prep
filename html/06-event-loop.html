@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The event loop · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="event-loop">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 1 · Language basics</p>
+    <h1>The event loop</h1>
+    <p class="lead">
+      JavaScript runs one function at a time. Everything else waits in a queue for
+      its turn. Almost every "what is the output order" question can be answered
+      with one rule, applied carefully.
+    </p>
+
+    <h2 id="parts">The four pieces</h2>
+    <div class="grid two">
+      <div class="card">
+        <h4>Call stack</h4>
+        <p>Where normal code runs. One function at a time. When it is empty, JavaScript is free.</p>
+      </div>
+      <div class="card">
+        <h4>The browser (or Node)</h4>
+        <p>Timers, network requests and click events wait here, outside JavaScript. When they finish, they put a callback in a queue.</p>
+      </div>
+      <div class="card">
+        <h4>Task queue</h4>
+        <p><code>setTimeout</code>, <code>setInterval</code>, network callbacks, click events.</p>
+      </div>
+      <div class="card">
+        <h4>Microtask queue</h4>
+        <p>Promise callbacks and <code>queueMicrotask</code>. This queue always goes first.</p>
+      </div>
+    </div>
+
+    <h2 id="rule">The rule</h2>
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>Learn these three lines</h4>
+        <ol>
+          <li>Run all the normal code until the stack is empty.</li>
+          <li>Then run <strong>every</strong> microtask, including any new ones they add.</li>
+          <li>Then take <strong>one</strong> task from the task queue. After it, go back to step 2.</li>
+        </ol>
+        <p>Drawing happens between tasks, not in the middle of one.</p>
+      </div>
+    </div>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">the classic question</span><span class="spacer"></span></div>
+<pre data-run><code>console.log("1");
+
+setTimeout(() =&gt; console.log("2"), 0);
+
+Promise.resolve().then(() =&gt; console.log("3"));
+
+queueMicrotask(() =&gt; console.log("4"));
+
+console.log("5");</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <details class="reveal">
+      <summary>Work it out</summary>
+      <div class="body">
+        <p>
+          Normal code first: <code>1</code>, <code>5</code>. Then microtasks in the
+          order they were added: <code>3</code>, <code>4</code>. Then the timer:
+          <code>2</code>. So the answer is <strong>1 5 3 4 2</strong>.
+        </p>
+      </div>
+    </details>
+
+    <h2 id="nested">Microtasks can add more microtasks</h2>
+    <p>
+      The microtask queue is emptied completely. So a microtask that adds another
+      microtask runs before any timer, even if the timer was set first.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">nested.js</span><span class="spacer"></span></div>
+<pre data-run><code>setTimeout(() =&gt; console.log("timer 1"), 0);
+
+Promise.resolve()
+  .then(() =&gt; {
+    console.log("micro 1");
+    Promise.resolve().then(() =&gt; console.log("micro 2 (added inside)"));
+  })
+  .then(() =&gt; console.log("micro 3"));
+
+setTimeout(() =&gt; console.log("timer 2"), 0);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <details class="reveal">
+      <summary>Show the order</summary>
+      <div class="body">
+        <p><code>micro 1, micro 3, micro 2 (added inside), timer 1, timer 2</code></p>
+        <p>
+          Why <code>micro 3</code> comes before <code>micro 2</code>: when the
+          queue starts, both the first <code>then</code> and the chained
+          <code>then</code> are already in it. The nested one is added at the end,
+          so it waits. The timers only start when the queue is empty.
+        </p>
+      </div>
+    </details>
+
+    <h2 id="await">How <code>await</code> fits in</h2>
+    <p>
+      <code>await v</code> works like
+      <code>Promise.resolve(v).then(rest)</code>. Everything after the
+      <code>await</code> becomes a microtask. That one sentence explains every
+      ordering question with async functions.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">async-order.js</span><span class="spacer"></span></div>
+<pre data-run><code>async function one() {
+  console.log("one: start");
+  await null;                 // pause here
+  console.log("one: after await");
+}
+
+async function two() {
+  console.log("two: start");
+  await null;
+  console.log("two: after await");
+}
+
+console.log("sync start");
+one();
+two();
+Promise.resolve().then(() =&gt; console.log("plain then"));
+console.log("sync end");</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <details class="reveal">
+      <summary>Show the order</summary>
+      <div class="body">
+        <p>
+          <code>sync start, one: start, two: start, sync end, one: after await, two: after await, plain then</code>
+        </p>
+        <p>
+          Each async function runs normally until its first <code>await</code>,
+          then adds the rest to the microtask queue. The plain
+          <code>then</code> was added after both of them, so it runs last.
+        </p>
+      </div>
+    </details>
+
+    <h2 id="timer">Timers are not exact</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">delay.js</span><span class="spacer"></span></div>
+<pre data-run><code>const start = Date.now();
+
+setTimeout(() =&gt; {
+  console.log("timer ran after", Date.now() - start, "ms (asked for 0)");
+}, 0);
+
+// A long block of normal code delays every queued callback
+const end = Date.now() + 120;
+while (Date.now() &lt; end) { /* busy for 120ms */ }
+
+console.log("blocking work finished");</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      <code>setTimeout(fn, 0)</code> means "run this soon", not "run this now". It
+      does not guarantee 0 milliseconds. If you need to measure work, use
+      <code>performance.now()</code>, not timers.
+    </p>
+
+    <h2 id="render">Where drawing fits in</h2>
+    <p>
+      The browser can only draw when JavaScript is not running. Within one frame:
+      <code>requestAnimationFrame</code> callbacks run, then styles and layout,
+      then the screen updates.
+    </p>
+    <ul>
+      <li><strong>Visual changes</strong> go in <code>requestAnimationFrame</code>.</li>
+      <li><strong>Low-priority work</strong> goes in <code>setTimeout(0)</code>, or better, <code>requestIdleCallback</code>.</li>
+      <li><strong>Work that must happen before drawing</strong> goes in a microtask.</li>
+    </ul>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>A microtask loop freezes the page</h4>
+        <p>
+          If a microtask keeps adding another microtask, the queue never empties.
+          The browser never gets to draw or run timers. The tab freezes. That is why
+          "wait a moment" code uses <code>setTimeout</code> and not a promise loop.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="tracing">How to work out any order question</h2>
+    <ol>
+      <li>Write down every line of normal code in order. Cross them off as you go.</li>
+      <li>Every callback you <em>register</em> goes into a waiting list. Keep two lists: microtasks and tasks.</li>
+      <li>When normal code ends, read the microtask list left to right. If one adds another, put it on the right.</li>
+      <li>Then take one task. After it, empty the microtasks again. Repeat.</li>
+      <li><code>await</code> means "the rest is a microtask". <code>setTimeout</code> is a task.</li>
+    </ol>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">mixed.js, try it before you look</span><span class="spacer"></span></div>
+<pre data-run><code>async function main() {
+  console.log("main start");
+  await Promise.resolve();
+  console.log("main continued");
+}
+
+console.log("script start");
+setTimeout(() =&gt; console.log("timeout"), 0);
+main();
+
+new Promise((res) =&gt; {
+  console.log("inside the executor");
+  res();
+}).then(() =&gt; console.log("then A"));
+
+console.log("script end");</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <details class="reveal">
+      <summary>Show the full order</summary>
+      <div class="body">
+        <p>
+          <code>script start, main start, inside the executor, script end, main continued, then A, timeout</code>
+        </p>
+        <p>
+          <code>main start</code> and the executor both run immediately. Two
+          microtasks were added: <code>main</code>'s continuation first (the
+          <code>await</code> happened before the <code>.then</code>), then
+          <code>then A</code>.
+        </p>
+      </div>
+    </details>
+
+    <h2 id="node">Node works the same way</h2>
+    <p>
+      Node has the same two queues with the same priority. It just groups the task
+      queue into stages. <code>process.nextTick</code> has its own queue that runs
+      before promise callbacks. You do not need the stage details for a front-end
+      interview. "nextTick runs before promises, and both run before timers" is
+      enough.
+    </p>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="quiz">
+      <summary>Which runs first: a <code>setTimeout(…, 0)</code> set before a promise's <code>.then</code>?</summary>
+      <div class="opts">
+        <div class="opt correct"><span class="mark">A</span> The <code>.then</code>, because microtasks always go first</div>
+        <div class="opt"><span class="mark">B</span> The timer, because it was set first</div>
+        <div class="opt"><span class="mark">C</span> It is random</div>
+      </div>
+      <div class="body"><p>The queue matters more than the order you wrote them. Order only matters inside the same queue.</p></div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why does a 5-second loop freeze the whole page?</summary>
+      <div class="body">
+        <p>
+          The stack never becomes empty. So the event loop never reaches the point
+          where it can run callbacks, animation frames or drawing. The page stops
+          responding.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Does <code>setTimeout(fn, 0)</code> always run before a click handler?</summary>
+      <div class="body">
+        <p>
+          No. Both are tasks. Whichever was queued first runs first, and that
+          depends on real timing. Never build logic on that assumption.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

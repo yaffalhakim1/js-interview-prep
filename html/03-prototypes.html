@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototypes and classes · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="prototypes">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 1 · Language basics</p>
+    <h1>Prototypes and classes</h1>
+    <p class="lead">
+      Objects in JavaScript can point to another object. That link is called the
+      prototype. When you read a property that is missing, JavaScript looks at the
+      linked object. <code>class</code> is a shorter way to write the same thing.
+    </p>
+
+    <h2 id="chain">How lookup works</h2>
+    <p>
+      Every object has a hidden link to another object, or to <code>null</code>.
+      Reading a property follows that link until the property is found.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">lookup.js</span><span class="spacer"></span></div>
+<pre data-run><code>const animal = {
+  breathes: true,
+  speak() { return `${this.name} makes a sound`; }
+};
+
+const dog = Object.create(animal);   // dog's prototype is animal
+dog.name = "Rex";
+
+console.log("dog's own keys:", Object.keys(dog));   // only "name"
+console.log("inherited:", dog.breathes);            // found on animal
+console.log("method call:", dog.speak());           // `this` is dog
+
+console.log("end of chain:", Object.getPrototypeOf(animal) === Object.prototype);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      Look at <code>dog.speak()</code>. The function is found on
+      <code>animal</code>, but <code>this</code> is <code>dog</code>. Finding the
+      method and setting <code>this</code> are two separate things. This confuses
+      many people, so say it clearly.
+    </p>
+
+    <h3>Why put methods on the prototype?</h3>
+    <p>
+      To save memory. A method on the prototype exists once. A method assigned
+      inside the constructor exists once per object. With 10,000 rows in a table,
+      that is 10,000 functions instead of one.
+    </p>
+
+    <h2 id="new">What <code>new</code> does</h2>
+    <p>Four steps, in this order:</p>
+    <ol>
+      <li>Make a new empty object.</li>
+      <li>Link it to <code>Fn.prototype</code>.</li>
+      <li>Call <code>Fn</code> with that object as <code>this</code>.</li>
+      <li>If the function returns an object, use that. Otherwise use the new object.</li>
+    </ol>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">myNew.js</span><span class="spacer"></span></div>
+<pre data-run><code>function myNew(Fn, ...args) {
+  if (typeof Fn !== "function") throw new TypeError("not a constructor");
+
+  const obj = Object.create(Fn.prototype);        // steps 1 and 2
+  const result = Fn.apply(obj, args);             // step 3
+
+  return result !== null &amp;&amp; typeof result === "object" ? result : obj;   // step 4
+}
+
+function User(name) { this.name = name; }
+User.prototype.greet = function () { return `hi ${this.name}`; };
+
+const u = myNew(User, "lin");
+console.log(u.greet());
+console.log("is a User:", u instanceof User);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>Step 4 is the one people forget</h4>
+        <p>
+          If a constructor returns an object, that object wins and the new
+          <code>this</code> is thrown away. Returning a number or string is
+          ignored.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="class">What <code>class</code> really is</h2>
+    <p>
+      <code>class</code> is a shorter way to write the same code. Methods go on
+      <code>prototype</code>. Static methods go on the class itself.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">same code, two ways</span><span class="spacer"></span></div>
+<pre data-run><code>// Old style
+function Point(x, y) { this.x = x; this.y = y; }
+Point.prototype.dist = function () {
+  return Math.hypot(this.x, this.y).toFixed(2);
+};
+
+// New style
+class Point2 {
+  constructor(x, y) { this.x = x; this.y = y; }
+  dist() { return Math.hypot(this.x, this.y).toFixed(2); }
+  static origin() { return new Point2(0, 0); }
+}
+
+console.log(new Point(3, 4).dist(), new Point2(3, 4).dist());
+console.log("methods live on prototype:", Object.getOwnPropertyNames(Point2.prototype));
+console.log("static lives on the class:", typeof Point2.origin);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>Differences that matter in an interview:</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Behaviour</th><th>Function constructor</th><th>class</th></tr></thead>
+        <tbody>
+          <tr><td>Call without <code>new</code></td><td>Runs, usually wrongly</td><td>Throws <code>TypeError</code></td></tr>
+          <tr><td>Hoisting</td><td>Ready immediately</td><td>Hoisted but unusable until the line runs</td></tr>
+          <tr><td>Prototype methods</td><td>Show up in <code>for...in</code></td><td>Hidden from <code>for...in</code></td></tr>
+          <tr><td>Strict mode</td><td>Only if you ask</td><td>Always on</td></tr>
+          <tr><td>Inheritance</td><td>You wire it up yourself</td><td><code>extends</code> and <code>super</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>"Classes are not hoisted" is wrong</h4>
+        <p>
+          They are hoisted. But the name cannot be used until the class line runs.
+          You get <code>ReferenceError: Cannot access 'X' before initialization</code>.
+          That is a different error from <code>X is not defined</code>.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="inherit">Inheritance with <code>extends</code></h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">extends.js</span><span class="spacer"></span></div>
+<pre data-run><code>class Shape {
+  constructor(name) { this.name = name; }
+  describe() { return `a ${this.name}`; }
+}
+
+class Circle extends Shape {
+  constructor(r) {
+    super("circle");     // must run before you touch `this`
+    this.r = r;
+  }
+  area() { return (Math.PI * this.r ** 2).toFixed(2); }
+  describe() { return `${super.describe()} of radius ${this.r}`; }
+}
+
+const c = new Circle(2);
+console.log(c.describe());
+console.log("area:", c.area());
+console.log("is a Circle:", c instanceof Circle, "· is a Shape:", c instanceof Shape);
+console.log("chain is linked:", Object.getPrototypeOf(Circle.prototype) === Shape.prototype);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      Two things to remember. <code>super()</code> must run before you use
+      <code>this</code>, because the object does not exist until the parent
+      constructor runs. And <code>instanceof</code> walks the chain, so a
+      <code>Circle</code> is also a <code>Shape</code>.
+    </p>
+
+    <h2 id="instanceof">Write <code>instanceof</code> yourself</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">myInstanceOf.js</span><span class="spacer"></span></div>
+<pre data-run><code>function myInstanceOf(obj, Ctor) {
+  if (obj === null || (typeof obj !== "object" &amp;&amp; typeof obj !== "function")) {
+    return false;
+  }
+
+  const target = Ctor.prototype;
+  let proto = Object.getPrototypeOf(obj);
+
+  while (proto !== null) {
+    if (proto === target) return true;
+    proto = Object.getPrototypeOf(proto);   // walk up the chain
+  }
+  return false;
+}
+
+class A {}
+class B extends A {}
+const b = new B();
+
+console.log(myInstanceOf(b, B), myInstanceOf(b, A), myInstanceOf(b, Object));
+console.log("an object is not an Array:", myInstanceOf({}, Array));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h2 id="mistakes">Common mistakes</h2>
+    <ul>
+      <li><strong>Replacing <code>prototype</code> after you made objects.</strong> Old objects still point at the old prototype.</li>
+      <li><strong>Using an arrow function as a method.</strong> Arrows have no <code>this</code>, so <code>Dog.prototype.bark = () =&gt; this.name</code> never works.</li>
+      <li><strong>Forgetting <code>constructor</code>.</strong> If you replace the prototype, set <code>constructor</code> back.</li>
+      <li><strong>Mixing up <code>__proto__</code> and <code>prototype</code>.</strong> <code>__proto__</code> is the link on an object. <code>prototype</code> is a property on a function that sets that link.</li>
+      <li><strong>Using <code>Object.create(null)</code> by accident.</strong> You get an object with no methods at all, not even <code>hasOwnProperty</code>.</li>
+    </ul>
+
+    <div class="callout say">
+      <span class="ic">”</span>
+      <div>
+        <h4>Say this in an interview</h4>
+        <p>
+          "Reading a property walks up the prototype chain. Writing always sets the
+          value on the object itself. <code>new</code> makes an object, links it to
+          <code>Fn.prototype</code>, calls the function with that object as
+          <code>this</code>, and uses any returned object. <code>class</code> does
+          the same thing with stricter rules."
+        </p>
+      </div>
+    </div>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="reveal">
+      <summary>Why does <code>dog.speak()</code> say "Rex" when <code>speak</code> lives on <code>animal</code>?</summary>
+      <div class="body">
+        <p>
+          The method is found on <code>animal</code>, but <code>this</code> comes
+          from the call site. <code>dog.speak()</code> sets <code>this</code> to
+          <code>dog</code>. Finding the code and setting the receiver are separate
+          steps.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>What happens if you call a class without <code>new</code>?</summary>
+      <div class="body">
+        <p>
+          <code>TypeError: Class constructor A cannot be invoked without 'new'</code>.
+          An old function constructor would have run instead.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>When would you use <code>Object.create(null)</code>?</summary>
+      <div class="body">
+        <p>
+          For a lookup table keyed by user input. A normal object already has keys
+          like <code>toString</code>, so <code>obj["toString"]</code> gives a
+          wrong answer. A null-prototype object has no inherited keys. Today a
+          <code>Map</code> is usually a better choice.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curry · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="curry">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 2 · Coding questions</p>
+    <h1>Curry</h1>
+    <p class="lead">
+      Currying turns <code>f(a, b, c)</code> into <code>f(a)(b)(c)</code>. The code
+      is ten lines. The interview is about knowing when it stops, and about what
+      <code>fn.length</code> counts and what it misses.
+    </p>
+
+    <h2 id="definitions">Three words people mix up</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Word</th><th>Meaning</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>Curry</td><td>turn a function with 2 arguments into two functions with 1 argument</td><td><code>add(1)(2)</code></td></tr>
+          <tr><td>Partial application</td><td>fix some arguments now, pass the rest later</td><td><code>addOne = add(1)</code></td></tr>
+          <tr><td>Uncurry</td><td>turn a curried function back into a normal one</td><td><code>uncurry(add)(1, 2)</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      In interviews, "curry" usually means "keep taking arguments until you have
+      enough, then run". That is a mix of the first two. Build that, then say which
+      strict definition you bent.
+    </p>
+
+    <h2 id="basic">The main version</h2>
+    <p>
+      <code>fn.length</code> is the number of parameters the function declares,
+      counting stops at the first default or rest parameter. Curry collects
+      arguments until it reaches that number, then runs the function.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">curry.js</span><span class="spacer"></span></div>
+<pre data-run><code>function curry(fn) {
+  return function curried(...args) {
+    if (args.length &gt;= fn.length) {
+      return fn.apply(this, args);        // enough arguments, run it
+    }
+    return function next(...more) {
+      return curried.apply(this, [...args, ...more]);
+    };
+  };
+}
+
+function add3(a, b, c) { return a + b + c; }
+const curried = curry(add3);
+
+console.log(curried(1)(2)(3));      // 6, one at a time
+console.log(curried(1, 2)(3));      // 6, mixed
+console.log(curried(1)(2, 3));      // 6
+console.log(curried(1, 2, 3));      // 6, all at once
+console.log(curried()(1)(2)(3));    // 6, empty call is harmless</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4><code>fn.length</code> gives the wrong number in three cases</h4>
+        <ul>
+          <li><strong>Default values:</strong> <code>(a, b = 1) =&gt; …</code> has length 1. Curry would run after one argument.</li>
+          <li><strong>Rest parameters:</strong> <code>(...args) =&gt; …</code> has length 0. Curry would run immediately, every time.</li>
+          <li><strong>Bound functions:</strong> <code>fn.bind(x)</code> has a shorter length, because some arguments are already filled in.</li>
+        </ul>
+        <p>Say this out loud. It shows you know how it works, not just the trick.</p>
+      </div>
+    </div>
+
+    <h3>When the number of arguments is unknown</h3>
+    <p>
+      For <code>sum(1)(2)(3)</code> with no fixed count, there is no natural place
+      to stop. Two common conventions exist.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">variadic.js</span><span class="spacer"></span></div>
+<pre data-run><code>// Convention 1: an empty call means "finish"
+function curryVariadic(fn) {
+  return function curried(...args) {
+    if (args.length === 0) return fn();
+    return (...more) =&gt;
+      more.length === 0 ? fn(...args) : curried(...args, ...more);
+  };
+}
+
+const sum = curryVariadic((...ns) =&gt; ns.reduce((a, b) =&gt; a + b, 0));
+console.log(sum(1)(2)(3)());
+console.log(sum(1, 2)(3, 4)());
+
+// Convention 2: make the result act like a number when used in maths
+function infiniteSum(a) {
+  const next = (b) =&gt; infiniteSum(a + b);
+  next.valueOf = () =&gt; a;          // used by +, *, and comparisons
+  next.toString = () =&gt; String(a);
+  return next;
+}
+
+console.log("used as a number:", infiniteSum(1)(2)(3)(4)(5) * 1);
+console.log("used as a string:", `${infiniteSum(1)(2)(3)}`);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      The <code>valueOf</code> version is a popular puzzle: "make
+      <code>sum(1)(2)(3) == 6</code> true". It works because the object is turned
+      into a number when compared. But it fails with <code>===</code> and prints
+      strangely. Mention that limit if you use it.
+    </p>
+
+    <h2 id="placeholder">Leaving gaps to fill later</h2>
+    <p>
+      Real curry helpers let you skip an argument and fill it later. You need to
+      count how many real arguments you have, separately from the total.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">curry-placeholder.js</span><span class="spacer"></span></div>
+<pre data-run><code>const _ = Symbol("gap");
+
+function curryWithGaps(fn) {
+  const arity = fn.length;
+
+  return function curried(...args) {
+    const filled = args.filter((a) =&gt; a !== _).length;
+
+    if (filled &gt;= arity &amp;&amp; !args.includes(_)) {
+      return fn.apply(this, args);
+    }
+
+    return function next(...more) {
+      // put the new arguments into the gaps, left to right
+      const merged = args.slice();
+      let m = 0;
+      for (let i = 0; i &lt; merged.length &amp;&amp; m &lt; more.length; i++) {
+        if (merged[i] === _) merged[i] = more[m++];
+      }
+      while (m &lt; more.length) merged.push(more[m++]);
+      return curried.apply(this, merged);
+    };
+  };
+}
+
+const greet = curryWithGaps((greeting, name, punct) =&gt; `${greeting}, ${name}${punct}`);
+
+console.log(greet("Hello")("Ada")("!"));     // normal
+console.log(greet(_, "Ada")("Hi")("?"));     // gap filled later
+console.log(greet("Hey", _, "!")("Lin"));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h2 id="why">Why anyone uses curry</h2>
+    <div class="grid two">
+      <div class="card">
+        <h4>Reuse without wrappers</h4>
+        <p><code>const isAdmin = hasRole("admin")</code> reads better than an inline arrow, and the name shows in stack traces.</p>
+      </div>
+      <div class="card">
+        <h4>Building pipelines</h4>
+        <p><code>pipe(trim, toLower, validate)</code> needs functions with one argument. Curry adapts functions with more.</p>
+      </div>
+      <div class="card">
+        <h4>Settings first</h4>
+        <p>Fix the context once, then vary the data many times: <code>log("checkout")</code>.</p>
+      </div>
+      <div class="card">
+        <h4>Event handlers</h4>
+        <p><code>onClick(id)</code> returns a handler. Same idea, usually written as a closure.</p>
+      </div>
+    </div>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>An honest note worth saying</h4>
+        <p>
+          In normal app code, a plain arrow is usually clearer:
+          <code>const isAdmin = (u) =&gt; hasRole("admin", u)</code>. Curry earns its
+          place in pipelines and library code. Interviewers like hearing that you
+          would not curry everything.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="followups">Follow-up questions</h2>
+
+    <details class="reveal">
+      <summary>Write <code>curryRight</code>.</summary>
+      <div class="body">
+        <p>
+          Same code, but put new arguments at the front:
+          <code>curried.apply(this, [...more, ...args])</code>. Used for building
+          pipelines from right to left.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>What happens if you curry a function with no parameters?</summary>
+      <div class="body">
+        <p>
+          <code>fn.length</code> is 0, so the first call already has enough and runs
+          it. You cannot delay it. That is why the unknown-argument version needs a
+          rule of its own instead of using the count.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Does curry keep <code>this</code>?</summary>
+      <div class="body">
+        <p>
+          Only if you pass it on, as above with <code>fn.apply(this, args)</code> and
+          <code>curried.apply(this, …)</code>. The <code>this</code> of the final
+          call is the one used. With arrows you would lose it without noticing.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>How do you test a curried function?</summary>
+      <div class="body">
+        <p>
+          Test the full call, and one partial path. Then test the edges: extra
+          arguments, an empty call, and a function with default values, which shows
+          the <code>fn.length</code> behaviour.
+        </p>
+      </div>
+    </details>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="quiz">
+      <summary>What is <code>((a, b = 2) =&gt; a + b).length</code>?</summary>
+      <div class="opts">
+        <div class="opt correct"><span class="mark">A</span> 1</div>
+        <div class="opt"><span class="mark">B</span> 2</div>
+        <div class="opt"><span class="mark">C</span> 0</div>
+      </div>
+      <div class="body"><p>Counting stops at the first default value. So curry would run after one argument.</p></div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why does each partial call need its own copy of the arguments?</summary>
+      <div class="body">
+        <p>
+          So earlier calls do not affect later ones. Each call returns a new
+          function holding its own list. Otherwise
+          <code>const f = curried(1); f(2); f(3)</code> would interfere with each
+          other.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The this keyword · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="this">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 1 · Language basics</p>
+    <h1>The <code>this</code> keyword</h1>
+    <p class="lead">
+      <code>this</code> is the object a function is working on. Its value is
+      decided when you <strong>call</strong> the function, not when you write it.
+      There are four rules. Learn them in order and you can answer any question
+      about <code>this</code>.
+    </p>
+
+    <h2 id="rules">The four rules</h2>
+    <p>Check them from top to bottom. The first rule that matches wins.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Order</th><th>Rule</th><th>How you call it</th><th><code>this</code> becomes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td><code>new</code></td><td><code>new Fn()</code></td><td>the new object</td></tr>
+          <tr><td class="num">2</td><td>Explicit</td><td><code>fn.call(o)</code></td><td>whatever you passed</td></tr>
+          <tr><td class="num">3</td><td>Implicit</td><td><code>obj.fn()</code></td><td><code>obj</code></td></tr>
+          <tr><td class="num">4</td><td>Default</td><td><code>fn()</code></td><td><code>undefined</code> in strict mode</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">rules.js</span><span class="spacer"></span></div>
+<pre data-run><code>"use strict";
+
+function who() { return this && this.name; }
+
+// Rule 4: plain call. No object, so `this` is undefined.
+console.log("plain call:", who());
+
+// Rule 3: called on an object. `this` is that object.
+const alice = { name: "alice", say: who };
+console.log("on an object:", alice.say());
+
+// Rule 2: you choose the object yourself.
+const bob = { name: "bob" };
+console.log("call:", who.call(bob));
+console.log("apply:", who.apply(bob));
+console.log("bind:", who.bind(bob)());
+
+// Rule 1: `new` beats even bind
+function Person(name) { this.name = name; }
+const BoundPerson = Person.bind({ name: "ignored" });
+console.log("new wins:", new BoundPerson("grace").name);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      The last line surprises people. <code>new</code> wins over <code>bind</code>.
+      <code>new</code> creates a fresh object and uses that as <code>this</code>,
+      so the bound value is ignored for that call.
+    </p>
+
+    <h2 id="lost">The most common bug: losing <code>this</code></h2>
+    <p>
+      Rule 3 depends on the object being there at the call. If you move the
+      function into a variable, the object is gone.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">lost-this.js</span><span class="spacer"></span></div>
+<pre data-run><code>"use strict";
+const user = {
+  name: "ada",
+  greet() { return `hi, ${this.name}`; }
+};
+
+console.log("normal call:", user.greet());
+
+const detached = user.greet;   // the object is no longer attached
+
+try {
+  detached();                  // `this` is undefined here
+} catch (e) {
+  console.log("detached fails:", e.message);
+}
+
+const safe = user.greet.bind(user);
+console.log("after bind:", safe());</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>This is why debounce uses <code>function</code>, not an arrow</h4>
+        <p>
+          The wrapper inside <code>debounce</code> must pass the caller's
+          <code>this</code> through. It does that with
+          <code>fn.apply(this, args)</code>. If you write the wrapper as an arrow,
+          it captures <code>this</code> from where debounce was created, and every
+          method that uses it breaks.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="arrows">Arrow functions do not have their own <code>this</code></h2>
+    <p>
+      An arrow function borrows <code>this</code> from the code around it. It also
+      ignores <code>call</code>, <code>apply</code> and <code>bind</code>.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">arrows.js</span><span class="spacer"></span></div>
+<pre data-run><code>const timer = {
+  seconds: 0,
+
+  broken() {
+    setTimeout(function () {
+      // a normal function gets its own `this`, so this is not `timer`
+      console.log("normal fn:", this && this.seconds);
+    }, 0);
+  },
+
+  works() {
+    setTimeout(() =&gt; {
+      // an arrow keeps the `this` from `works`
+      this.seconds++;
+      console.log("arrow fn:", this.seconds);
+    }, 0);
+  }
+};
+
+timer.broken();
+timer.works();</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      Simple rule: use <code>function</code> when <code>this</code> must come from
+      the caller. Use an arrow when you want the <code>this</code> from around it.
+    </p>
+
+    <h3>Arrow functions also have no <code>arguments</code></h3>
+    <div class="codeblock">
+      <div class="bar"><span class="label">arguments.js</span><span class="spacer"></span></div>
+<pre data-run><code>function classic() {
+  return arguments.length;        // normal functions get `arguments`
+}
+
+console.log("normal function:", classic(1, 2, 3));
+
+// Use rest parameters instead. They work in both kinds of function.
+const modern = (...args) =&gt; args.length;
+console.log("rest parameter:", modern(1, 2, 3));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h2 id="callapply">call, apply and bind</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Method</th><th>How you pass arguments</th><th>What it returns</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>call</code></td><td>one by one</td><td>the result</td></tr>
+          <tr><td><code>apply</code></td><td>as an array</td><td>the result</td></tr>
+          <tr><td><code>bind</code></td><td>one by one</td><td>a new function</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Writing these yourself is a common follow-up. The trick is simple: put the
+      function on the object for a moment, then call it from the object. Rule 3
+      then gives you the right <code>this</code>.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">myCall / myApply / myBind</span><span class="spacer"></span></div>
+<pre data-run><code>Function.prototype.myCall = function (ctx, ...args) {
+  ctx = ctx == null ? globalThis : Object(ctx);
+
+  const key = Symbol("fn");    // unique key, so we do not overwrite a real property
+  ctx[key] = this;
+
+  try {
+    return ctx[key](...args);  // called on ctx, so `this` is ctx
+  } finally {
+    delete ctx[key];           // always clean up
+  }
+};
+
+Function.prototype.myApply = function (ctx, args = []) {
+  return this.myCall(ctx, ...args);
+};
+
+Function.prototype.myBind = function (ctx, ...boundArgs) {
+  const fn = this;
+
+  return function bound(...laterArgs) {
+    if (new.target) {
+      return new fn(...boundArgs, ...laterArgs);   // keep `new` working
+    }
+    return fn.myCall(ctx, ...boundArgs, ...laterArgs);
+  };
+};
+
+function describe(city) { return `${this.name} from ${city}`; }
+const p = { name: "Jean" };
+
+console.log(describe.myCall(p, "Paris"));
+console.log(describe.myApply(p, ["Lyon"]));
+console.log(describe.myBind(p)("Nice"));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>Four things to mention</h4>
+        <ul>
+          <li>Use a <code>Symbol</code> key so you do not overwrite a real property.</li>
+          <li>Clean up in <code>finally</code>, so a throwing function does not leave the object changed.</li>
+          <li><code>bind</code> must keep working with <code>new</code>. That is what the <code>new.target</code> check does.</li>
+          <li>A bound <code>this</code> cannot be overridden by a later <code>call</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 id="classes">Classes and methods</h2>
+    <p>
+      Methods on a class live on the prototype, so they use rule 3. That means they
+      also lose <code>this</code> when detached.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">class.js</span><span class="spacer"></span></div>
+<pre data-run><code>class Button {
+  label = "save";
+
+  // normal method: `this` depends on how it is called
+  handlePrototype() { return this.label; }
+
+  // arrow property: `this` is always this instance
+  handleArrow = () =&gt; this.label;
+}
+
+const b = new Button();
+const { handlePrototype, handleArrow } = b;
+
+console.log("arrow property:", handleArrow());
+
+try {
+  handlePrototype();
+} catch (e) {
+  console.log("normal method fails:", e.name);
+}</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      The arrow property has a cost. It creates one function per instance instead
+      of one shared function on the prototype. Worth mentioning if you are asked
+      about performance.
+    </p>
+
+    <h2 id="quirks">Two edge cases</h2>
+
+    <h3>1. <code>this</code> inside a <code>map</code> callback</h3>
+    <p>
+      <code>map</code> and <code>forEach</code> take a second argument. That
+      argument becomes the callback's <code>this</code>. Without it,
+      <code>this</code> is <code>undefined</code>.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">thisArg.js</span><span class="spacer"></span></div>
+<pre data-run><code>"use strict";
+const ctx = { factor: 10 };
+
+// second argument = `this` inside the callback
+const out = [1, 2].map(function (n) { return n * this.factor; }, ctx);
+console.log("with thisArg:", out);
+
+try {
+  [1, 2].map(function (n) { return n * this.factor; });
+} catch (e) {
+  console.log("without thisArg:", e.name);
+}</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h3>2. <code>this</code> at the top of a file</h3>
+    <p>
+      In a module, top-level <code>this</code> is <code>undefined</code>. In an old
+      script it is <code>window</code>. In Node it is
+      <code>module.exports</code>. Same keyword, three answers. So "it depends" is
+      the right first word in your answer.
+    </p>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="quiz">
+      <summary>What is <code>this</code> in <code>obj.method.call(other)</code>?</summary>
+      <div class="opts">
+        <div class="opt"><span class="mark">A</span> <code>obj</code></div>
+        <div class="opt correct"><span class="mark">B</span> <code>other</code>, because explicit beats implicit</div>
+        <div class="opt"><span class="mark">C</span> <code>undefined</code></div>
+      </div>
+      <div class="body"><p>Explicit beats implicit. Only <code>new</code> beats explicit.</p></div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why does debounce need <code>fn.apply(this, args)</code>?</summary>
+      <div class="body">
+        <p>
+          Because the debounced function is often a method. Passing the caller's
+          <code>this</code> and arguments through means the delayed call behaves
+          exactly like the original method call.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Can you set <code>this</code> on an arrow function?</summary>
+      <div class="body">
+        <p>
+          No. Arrow functions ignore <code>call</code>, <code>apply</code> and
+          <code>bind</code> for <code>this</code>. <code>bind</code> still returns
+          a new function with fixed arguments, which is why people think it worked.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>What is <code>this</code> inside a getter?</summary>
+      <div class="body">
+        <p>
+          The object you read from. <code>obj.x</code> makes <code>this</code> equal
+          <code>obj</code>. A static method is different: its <code>this</code> is
+          the class itself.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

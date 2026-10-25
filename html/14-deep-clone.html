@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep clone · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="deep-clone">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 2 · Coding questions</p>
+    <h1>Deep clone</h1>
+    <p class="lead">
+      Deep clone copies an object and everything inside it. This question walks
+      through JavaScript's object model: objects that contain themselves, prototypes,
+      <code>Map</code>, <code>Set</code>, and functions. Nobody expects you to
+      handle everything. They expect you to know what you skipped.
+    </p>
+
+    <h2 id="json">Why the JSON trick fails</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">json-trap.js</span><span class="spacer"></span></div>
+<pre data-run><code>const source = {
+  when: new Date("2024-01-01"),
+  missing: undefined,
+  notANumber: NaN,
+  fn: () =&gt; 1,
+  map: new Map([["k", 1]]),
+  set: new Set([1]),
+};
+
+const copy = JSON.parse(JSON.stringify(source));
+console.log(copy);
+
+// What we lost
+console.log("Date became a string:", typeof copy.when);
+console.log("undefined dropped:", !("missing" in copy));
+console.log("NaN became null:", copy.notANumber);
+console.log("function dropped:", !("fn" in copy));
+console.log("Map became:", JSON.stringify(copy.map));
+console.log("Set became:", JSON.stringify(copy.set));
+
+// BigInt cannot be converted at all
+try {
+  JSON.stringify({ big: 10n });
+} catch (e) {
+  console.log("BigInt:", e.name);
+}
+
+// And an object that contains itself throws
+const cyclic = { name: "a" };
+cyclic.self = cyclic;
+try {
+  JSON.parse(JSON.stringify(cyclic));
+} catch (e) {
+  console.log("self-reference:", e.name);
+}</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>Say this before you write any code</h4>
+        <p>
+          "The JSON trick is a conversion, not a copy. It loses types, drops
+          <code>undefined</code> and functions, turns <code>NaN</code> into
+          <code>null</code>, flattens <code>Map</code> and <code>Set</code> to
+          <code>{}</code>, and throws on objects that contain themselves. For plain
+          data that came from JSON it is fine, and fast."
+        </p>
+      </div>
+    </div>
+
+    <h2 id="native">The built-in answer: <code>structuredClone</code></h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">structured-clone.js</span><span class="spacer"></span></div>
+<pre data-run><code>if (typeof structuredClone === "function") {
+  const cyclic = { name: "a", date: new Date(0) };
+  cyclic.self = cyclic;
+
+  const copy = structuredClone(cyclic);
+  console.log("self-reference kept:", copy.self === copy);
+  console.log("it is a new object:", copy !== cyclic);
+  console.log("Date copied:", copy.date instanceof Date, copy.date !== cyclic.date);
+
+  try {
+    structuredClone({ fn: () =&gt; 1 });
+  } catch (e) {
+    console.log("functions fail:", e.name);
+  }
+} else {
+  console.log("not available in this runtime");
+}</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      <code>structuredClone</code> exists in every current browser and in Node 17+.
+      It handles self-references, <code>Date</code>, <code>Map</code>,
+      <code>Set</code>, <code>RegExp</code> and typed arrays. It does
+      <strong>not</strong> keep prototypes, getters, setters, or functions. A class
+      instance comes back as a plain object.
+    </p>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>Lead with this in an interview</h4>
+        <p>
+          "In real code I'd use <code>structuredClone</code>. If the environment
+          cannot support it, or I need to keep prototypes and class methods, here is
+          the recursive version." Knowing the built-in exists is the signal.
+          Reimplementing it without mentioning it looks like you learned from blog
+          posts.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="recursive">Writing it yourself</h2>
+    <p>
+      Three ideas carry the whole thing. Stop at simple values. Keep a
+      <code>WeakMap</code> of objects you already copied, so self-references work.
+      Handle each built-in type before falling back to a plain object.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">deepClone.js</span><span class="spacer"></span></div>
+<pre data-run><code>function deepClone(value, seen = new WeakMap()) {
+  // 1. simple values and functions are returned as they are
+  if (value === null || typeof value !== "object") return value;
+
+  // 2. already copied? return the same copy. This also handles self-references.
+  if (seen.has(value)) return seen.get(value);
+
+  // 3. built-in types need their own copy
+  if (value instanceof Date) return new Date(value.getTime());
+  if (value instanceof RegExp) return new RegExp(value.source, value.flags);
+
+  if (value instanceof Map) {
+    const copy = new Map();
+    seen.set(value, copy);
+    for (const [k, v] of value) copy.set(deepClone(k, seen), deepClone(v, seen));
+    return copy;
+  }
+
+  if (value instanceof Set) {
+    const copy = new Set();
+    seen.set(value, copy);
+    for (const v of value) copy.add(deepClone(v, seen));
+    return copy;
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    return value.slice ? value.slice() : value;
+  }
+
+  // 4. plain objects and arrays: keep the prototype
+  const copy = Array.isArray(value)
+    ? []
+    : Object.create(Object.getPrototypeOf(value));
+
+  seen.set(value, copy);          // save BEFORE going deeper
+
+  for (const key of Reflect.ownKeys(value)) {   // includes symbol keys
+    copy[key] = deepClone(value[key], seen);
+  }
+  return copy;
+}
+
+// ── tests ───────────────────────────────────────────────
+const original = {
+  name: "root",
+  when: new Date(0),
+  tags: new Set(["a"]),
+  meta: new Map([["k", { deep: true }]]),
+  nested: { list: [1, 2, { x: 3 }] },
+};
+original.self = original;         // contains itself
+
+const clone = deepClone(original);
+console.log("self-reference kept:", clone.self === clone);
+console.log("Date:", clone.when instanceof Date, clone.when.getTime());
+console.log("Map value copied:", clone.meta.get("k") !== original.meta.get("k"));
+console.log("Set:", [...clone.tags]);
+console.log("nested value:", clone.nested.list[2].x);
+
+clone.nested.list[0] = 99;
+console.log("original untouched:", original.nested.list[0] === 1);
+
+class User { constructor(n) { this.name = n; } greet() { return this.name; } }
+const u = deepClone(new User("ada"));
+console.log("class method still works:", u.greet());</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>Why save the copy before going deeper?</h4>
+        <p>
+          Because the copy must exist in the map before any child is copied.
+          Otherwise an object that contains itself recurses forever. It also means
+          two properties pointing at the same object still point at the same copy.
+          This one line matters more than any single type branch.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="gaps">What this still does not handle</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Case</th><th>What happens</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>Getters and setters</td><td>They run, and become plain values</td><td>Copy the property descriptors</td></tr>
+          <tr><td>Hidden properties</td><td><code>Reflect.ownKeys</code> finds them, but their flags are lost</td><td>Copy the descriptors</td></tr>
+          <tr><td>Functions</td><td>Shared, not copied</td><td>Cannot be copied meaningfully. Say so.</td></tr>
+          <tr><td>Promises, WeakMap, WeakSet</td><td>Returned as they are, or break</td><td>Not copyable by design</td></tr>
+          <tr><td>DOM nodes</td><td>Not plain objects, behaviour undefined</td><td><code>node.cloneNode(true)</code></td></tr>
+          <tr><td>Private <code>#</code> fields</td><td>Lost, they are not real properties</td><td>Add a <code>clone()</code> method to the class</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Keeping getters, if they ask</h3>
+    <div class="codeblock">
+      <div class="bar"><span class="label">descriptors.js</span><span class="spacer"></span></div>
+<pre data-run><code>function cloneWithDescriptors(value, seen = new WeakMap()) {
+  if (value === null || typeof value !== "object") return value;
+  if (seen.has(value)) return seen.get(value);
+
+  const copy = Object.create(Object.getPrototypeOf(value));
+  seen.set(value, copy);
+
+  for (const key of Reflect.ownKeys(value)) {
+    const desc = Object.getOwnPropertyDescriptor(value, key);
+    if ("value" in desc) desc.value = cloneWithDescriptors(desc.value, seen);
+    Object.defineProperty(copy, key, desc);   // keeps hidden, read-only and getters
+  }
+  return copy;
+}
+
+const obj = {};
+Object.defineProperty(obj, "hidden", { value: 1, enumerable: false });
+
+const c = cloneWithDescriptors(obj);
+console.log("hidden property kept:",
+  Object.getOwnPropertyDescriptor(c, "hidden").enumerable === false);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h2 id="shallow">Shallow, deep, and the middle</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">levels.js</span><span class="spacer"></span></div>
+<pre data-run><code>const src = { a: 1, nested: { b: 2 }, list: [{ c: 3 }] };
+
+const shallow1 = { ...src };              // one level only
+const shallow2 = Object.assign({}, src);  // same
+const deep = structuredClone(src);        // everything
+
+console.log("spread shares the nested object:", shallow1.nested === src.nested);
+console.log("structuredClone does not:", deep.nested !== src.nested);
+
+// Arrays: spread is shallow too
+const arr = [{ x: 1 }];
+const arrCopy = [...arr];
+console.log("array items shared:", arrCopy[0] === arr[0]);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      Shallow copies are usually the right choice in React. You replace the part
+      that changed and keep the rest by reference. Deep copying state on every
+      render is a performance bug, not a safety feature.
+    </p>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="quiz">
+      <summary>What is the smallest change that makes a simple recursive clone handle self-references?</summary>
+      <div class="opts">
+        <div class="opt"><span class="mark">A</span> Add a depth limit</div>
+        <div class="opt correct"><span class="mark">B</span> Keep a <code>WeakMap</code> of copies and check it before going deeper</div>
+        <div class="opt"><span class="mark">C</span> Wrap it in try/catch</div>
+      </div>
+      <div class="body"><p>A depth limit avoids the crash but silently cuts off data.</p></div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why <code>WeakMap</code> and not <code>Map</code> for the seen list?</summary>
+      <div class="body">
+        <p>
+          The list is only needed while the copy runs. A <code>WeakMap</code> avoids
+          holding strong references. A local <code>Map</code> would also be freed
+          when the call returns, but <code>WeakMap</code> is the better habit and
+          the expected answer.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Does a deep clone keep "these two properties are the same object"?</summary>
+      <div class="body">
+        <p>
+          With the <code>seen</code> map, yes. If <code>a.x === a.y</code>, then
+          <code>clone.x === clone.y</code>. Without it you get two separate copies,
+          which breaks code that relies on them being the same.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

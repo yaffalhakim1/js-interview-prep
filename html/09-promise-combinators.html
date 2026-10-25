@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promise.all and friends · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="combinators">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 2 · Coding questions</p>
+    <h1>Promise.all and friends</h1>
+    <p class="lead">
+      There are four helpers for running several promises together. They share the
+      same traps: keep the results in input order, handle an empty list, and accept
+      plain values. Writing <code>all</code> takes fifteen lines. The score comes
+      from explaining when to use the other three.
+    </p>
+
+    <h2 id="semantics">The four, side by side</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Method</th><th>Finishes with</th><th>Fails when</th><th>Use it when</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>all</code></td><td>all values, in input order</td><td>the first one fails</td><td>you need every result</td></tr>
+          <tr><td><code>allSettled</code></td><td>every outcome, success or failure</td><td>never</td><td>some may fail and that is fine</td></tr>
+          <tr><td><code>any</code></td><td>the first success</td><td>all of them fail</td><td>you have backups, first one wins</td></tr>
+          <tr><td><code>race</code></td><td>whichever finishes first</td><td>if that one failed</td><td>a timeout, or the fastest source</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>Two words that decide your answer</h4>
+        <p>
+          <code>all</code> stops at the <strong>first</strong> failure. It does not
+          wait for the rest. <code>any</code> waits for the
+          <strong>last</strong> failure before giving up. Mixing those up is the
+          most common mistake in this question.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="all">Writing <code>Promise.all</code></h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">promiseAll.js</span><span class="spacer"></span></div>
+<pre data-run><code>function promiseAll(list) {
+  return new Promise((resolve, reject) =&gt; {
+    const items = Array.from(list);
+    const results = new Array(items.length);
+    let remaining = items.length;
+
+    if (remaining === 0) return resolve([]);   // empty list finishes straight away
+
+    items.forEach((item, i) =&gt; {
+      Promise.resolve(item).then((value) =&gt; {
+        results[i] = value;                    // use the index, so order is kept
+        if (--remaining === 0) resolve(results);
+      }, reject);                              // one failure and we are done
+    });
+  });
+}
+
+// ── try it ──────────────────────────────────────────────
+const slow = (v, ms) =&gt; new Promise((r) =&gt; setTimeout(() =&gt; r(v), ms));
+
+promiseAll([slow("a", 60), "plain value", slow("c", 10)])
+  .then((v) =&gt; console.log("kept input order:", v));
+
+promiseAll([Promise.reject(new Error("nope")), slow("ignored", 10)])
+  .catch((e) =&gt; console.log("failed:", e.message));
+
+promiseAll([]).then((v) =&gt; console.log("empty list:", v));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>Three bugs that keep appearing</h4>
+        <ol>
+          <li><strong>Pushing as each one finishes.</strong> Then the order is finish order, which is wrong. Use the index.</li>
+          <li><strong>Not handling an empty list.</strong> The promise stays pending forever. This has frozen real apps.</li>
+          <li><strong>Not using <code>Promise.resolve()</code>.</strong> A plain value has no <code>.then</code>, so <code>item.then(...)</code> throws.</li>
+        </ol>
+      </div>
+    </div>
+
+    <h2 id="allsettled">Writing <code>allSettled</code></h2>
+    <p>
+      Same idea, but every failure is turned into a normal value. So the outer
+      promise can never fail.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">allSettled.js</span><span class="spacer"></span></div>
+<pre data-run><code>function allSettled(list) {
+  return Promise.all(
+    Array.from(list).map((item) =&gt;
+      Promise.resolve(item).then(
+        (value) =&gt; ({ status: "fulfilled", value }),
+        (reason) =&gt; ({ status: "rejected", reason })
+      )
+    )
+  );
+}
+
+const ok = Promise.resolve("saved");
+const bad = Promise.reject(new Error("offline"));
+
+allSettled([ok, bad, "plain value"]).then((results) =&gt; {
+  console.log(results);
+  const failures = results.filter((r) =&gt; r.status === "rejected");
+  console.log("how many failed:", failures.length);
+});</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      This is the one to use for bulk work. Upload ten files, report which ones
+      failed, keep the ones that worked. In an interview, the phrase "some may fail
+      and that is fine" is what shows you know when to use it.
+    </p>
+
+    <h2 id="any">Writing <code>Promise.any</code></h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">promiseAny.js</span><span class="spacer"></span></div>
+<pre data-run><code>function promiseAny(list) {
+  return new Promise((resolve, reject) =&gt; {
+    const items = Array.from(list);
+    const errors = new Array(items.length);
+    let remaining = items.length;
+
+    if (remaining === 0) {
+      return reject(new AggregateError([], "all of them failed"));
+    }
+
+    items.forEach((item, i) =&gt; {
+      Promise.resolve(item).then(resolve, (err) =&gt; {
+        errors[i] = err;
+        if (--remaining === 0) {
+          reject(new AggregateError(errors, "all of them failed"));
+        }
+      });
+    });
+  });
+}
+
+const fail = (msg, ms) =&gt; new Promise((_, rej) =&gt; setTimeout(() =&gt; rej(new Error(msg)), ms));
+
+promiseAny([fail("a", 20), Promise.resolve("winner"), fail("c", 5)])
+  .then((v) =&gt; console.log("first success:", v));
+
+promiseAny([fail("x", 5), fail("y", 10)])
+  .catch((e) =&gt; {
+    console.log(e.name, "·", e.errors.map((err) =&gt; err.message).join(", "));
+  });</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      <code>AggregateError</code> is a real error type with an
+      <code>errors</code> array. Most people miss that.
+    </p>
+
+    <h2 id="race">Writing <code>Promise.race</code></h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">promiseRace.js</span><span class="spacer"></span></div>
+<pre data-run><code>function promiseRace(list) {
+  return new Promise((resolve, reject) =&gt; {
+    for (const item of Array.from(list)) {
+      Promise.resolve(item).then(resolve, reject);   // first one decides
+    }
+    // an empty list stays pending forever, same as the real one
+  });
+}
+
+const slow = (v, ms) =&gt; new Promise((r) =&gt; setTimeout(() =&gt; r(v), ms));
+
+promiseRace([slow("slow", 40), slow("fast", 5)])
+  .then((v) =&gt; console.log("winner:", v));
+
+// The usual real use: a timeout
+function withTimeout(promise, ms) {
+  const timeout = new Promise((_, reject) =&gt;
+    setTimeout(() =&gt; reject(new Error("took longer than " + ms + "ms")), ms)
+  );
+  return promiseRace([promise, timeout]);
+}
+
+withTimeout(slow("too late", 100), 20)
+  .catch((e) =&gt; console.log("timeout:", e.message));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4><code>race</code> does not stop the loser</h4>
+        <p>
+          The slower promise keeps running. Its result is just ignored. If the work
+          is a <code>fetch</code>, pass an <code>AbortController</code> signal so
+          the request is actually cancelled. Otherwise you saved time but not
+          bandwidth. Saying this is a strong signal.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="limits">The real follow-up: limit how many run at once</h2>
+    <p>
+      <code>Promise.all</code> on 10,000 URLs opens 10,000 requests. The practical
+      answer is a pool that only runs a few at a time.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">mapLimit.js</span><span class="spacer"></span></div>
+<pre data-run><code>async function mapLimit(items, limit, worker) {
+  const results = new Array(items.length);
+  let next = 0;
+
+  async function run() {
+    while (next &lt; items.length) {
+      const i = next++;          // claimed immediately, so no two workers take the same one
+      results[i] = await worker(items[i], i);
+    }
+  }
+
+  const runners = Array.from({ length: Math.min(limit, items.length) }, run);
+  await Promise.all(runners);
+  return results;
+}
+
+const work = (n) =&gt; new Promise((r) =&gt; setTimeout(() =&gt; r(n * 2), 10));
+
+mapLimit([1, 2, 3, 4, 5, 6], 2, work)
+  .then((v) =&gt; console.log("results:", v));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      Note the important part: <code>next++</code> happens immediately, so two
+      workers can never grab the same index. That is what makes it safe.
+    </p>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="quiz">
+      <summary><code>Promise.all([p1, p2])</code>, where <code>p1</code> fails at 10ms and <code>p2</code> succeeds at 50ms. What happens?</summary>
+      <div class="opts">
+        <div class="opt correct"><span class="mark">A</span> It fails at 10ms, and p2's value is thrown away</div>
+        <div class="opt"><span class="mark">B</span> It waits for both, then fails</div>
+        <div class="opt"><span class="mark">C</span> It succeeds with a missing value</div>
+      </div>
+      <div class="body"><p><code>all</code> stops at the first failure. <code>allSettled</code> is the one that waits for everything.</p></div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why does <code>Promise.all([])</code> finish at once, but <code>Promise.race([])</code> never finishes?</summary>
+      <div class="body">
+        <p>
+          <code>all</code> knows there is nothing left to wait for, so it gives an
+          empty array. <code>race</code> needs one promise to finish, and there are
+          none, so it waits forever.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Can <code>allSettled</code> ever fail?</summary>
+      <div class="body">
+        <p>
+          Not because of its inputs, that is the whole point. It can still throw
+          immediately if you pass something that is not a list, because the
+          argument is checked before the promise work starts.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>How would you try three mirrors and take the first that works?</summary>
+      <div class="body">
+        <p>
+          <code>Promise.any(mirrors.map(fetchFrom))</code>, then
+          <code>.catch(() =&gt; fallback())</code> for when all three fail. If you
+          also need a time limit, race the whole thing against a timer.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

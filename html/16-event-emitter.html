@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event emitter · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="emitter">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 2 · Coding questions</p>
+    <h1>Event emitter</h1>
+    <p class="lead">
+      An event emitter lets one part of your code announce that something happened,
+      and other parts listen. It is about forty lines, and it is a good test of
+      object design. How do you store listeners? How do you remove one? What if a
+      listener removes itself while you are calling the others?
+    </p>
+
+    <h2 id="model">The idea</h2>
+    <p>
+      Keep a map from event name to a list of functions. <code>on</code> adds one.
+      <code>off</code> removes one. <code>emit</code> calls them all. Everything else
+      is a variation on that.
+    </p>
+
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>Why interviewers use this question</h4>
+        <p>
+          There is no algorithm to hide behind. What is left is design. Does
+          <code>on</code> return a way to unsubscribe? What does <code>emit</code>
+          return? What if a listener throws? Each choice is a sentence you have to
+          defend.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="impl">The code</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">EventEmitter.js</span><span class="spacer"></span></div>
+<pre data-run><code>class EventEmitter {
+  #listeners = new Map();             // event name → Set of functions
+
+  on(event, handler) {
+    if (typeof handler !== "function") {
+      throw new TypeError("handler must be a function");
+    }
+    if (!this.#listeners.has(event)) this.#listeners.set(event, new Set());
+    this.#listeners.get(event).add(handler);
+
+    return () =&gt; this.off(event, handler);   // hand back a way to unsubscribe
+  }
+
+  once(event, handler) {
+    const wrapper = (...args) =&gt; {
+      this.off(event, wrapper);              // remove before calling
+      handler.apply(this, args);
+    };
+    wrapper.original = handler;              // so off(event, handler) still works
+    return this.on(event, wrapper);
+  }
+
+  off(event, handler) {
+    const set = this.#listeners.get(event);
+    if (!set) return this;
+
+    if (!handler) {
+      this.#listeners.delete(event);         // remove all for this event
+      return this;
+    }
+
+    if (!set.delete(handler)) {
+      // maybe it was wrapped by `once`
+      for (const fn of set) {
+        if (fn.original === handler) { set.delete(fn); break; }
+      }
+    }
+
+    if (set.size === 0) this.#listeners.delete(event);
+    return this;
+  }
+
+  emit(event, ...args) {
+    const set = this.#listeners.get(event);
+    if (!set || set.size === 0) return false;    // nobody listening
+
+    // Copy first, because a listener may add or remove others
+    for (const handler of [...set]) handler.apply(this, args);
+    return true;
+  }
+
+  count(event) {
+    return this.#listeners.get(event)?.size ?? 0;
+  }
+}
+
+// ── try it ──────────────────────────────────────────────
+const bus = new EventEmitter();
+const seen = [];
+
+const unsubscribe = bus.on("save", (p) =&gt; seen.push("A:" + p.id));
+bus.on("save", (p) =&gt; seen.push("B:" + p.id));
+bus.once("save", (p) =&gt; seen.push("once:" + p.id));
+
+bus.emit("save", { id: 1 });
+bus.emit("save", { id: 2 });
+
+unsubscribe();                          // A is gone
+bus.emit("save", { id: 3 });
+
+console.log(seen);
+console.log("listeners left:", bus.count("save"));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h2 id="decisions">The choices, and why</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Choice</th><th>What I did</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>How to store them</td><td><code>Map</code> of <code>Set</code></td><td>Fast add and remove, no duplicates, keeps order</td></tr>
+          <tr><td>What <code>on</code> returns</td><td>a function that unsubscribes</td><td>You cannot forget to call <code>off</code> with the right reference</td></tr>
+          <tr><td>What <code>emit</code> returns</td><td>true if anyone was listening</td><td>Lets the caller notice an event nobody handled</td></tr>
+          <tr><td>How to loop</td><td>over a copy</td><td>A listener that unsubscribes does not skip the next one</td></tr>
+          <tr><td>Empty event</td><td>removed from the map</td><td>Stops the map growing with empty entries</td></tr>
+          <tr><td><code>off</code> with no handler</td><td>removes all for that event</td><td>Matches Node, and it is the usual cleanup call</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>The bug that bites: changing the list while looping</h4>
+        <p>
+          If you loop over the live <code>Set</code> and a listener removes itself,
+          the loop skips the next listener. It silently never runs. Copying with
+          <code>[...set]</code> prevents it. It is the same class of bug as removing
+          items from a live <code>HTMLCollection</code>.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="errors">What if a listener throws?</h2>
+    <p>
+      In the code above, the error reaches whoever called <code>emit</code> and the
+      remaining listeners are skipped. Node's emitter does the same. Whether that is
+      right depends on what you are building.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">isolate.js</span><span class="spacer"></span></div>
+<pre data-run><code>class SafeEmitter {
+  #listeners = new Map();
+
+  on(event, handler) {
+    if (!this.#listeners.has(event)) this.#listeners.set(event, new Set());
+    this.#listeners.get(event).add(handler);
+    return () =&gt; this.#listeners.get(event)?.delete(handler);
+  }
+
+  emit(event, ...args) {
+    const set = this.#listeners.get(event);
+    if (!set) return;
+
+    for (const handler of [...set]) {
+      try {
+        handler(...args);
+      } catch (err) {
+        // one bad listener must not break the others
+        console.log('a listener for "' + event + '" threw: ' + err.message);
+      }
+    }
+  }
+}
+
+const bus = new SafeEmitter();
+bus.on("tick", () =&gt; { throw new Error("boom"); });
+bus.on("tick", () =&gt; console.log("the second listener still ran"));
+bus.emit("tick");</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      Catching each error is usually right for UI events like logging and analytics.
+      It is usually wrong for data pipelines, where a failure should stop
+      everything. Say which one you are building.
+    </p>
+
+    <h2 id="leaks">Memory leaks: the real-world failure</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">leak.js</span><span class="spacer"></span></div>
+<pre data-run><code>// A component listens when it mounts…
+function mount(bus) {
+  const state = { heavy: new Array(10_000).fill("x") };
+  bus.on("resize", () =&gt; console.log("saw", state.heavy.length));
+  // …and never unsubscribes. The closure keeps `state` alive forever.
+}
+
+// The fix: keep the handle and return it from cleanup
+function mountFixed(bus) {
+  const state = { heavy: [] };
+  const off = bus.on("resize", () =&gt; console.log("fixed:", state.heavy.length));
+  return () =&gt; off();       // in React, return this from useEffect
+}
+
+console.log("see the four leak patterns below");</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>Four ways this leaks in real code:</p>
+    <ol>
+      <li>You forget to unsubscribe when the component is removed.</li>
+      <li>You never clean up listener sets that became empty.</li>
+      <li>You use one global bus for everything, including per-request listeners.</li>
+      <li>You add a <code>once</code> listener for an event that never happens.</li>
+    </ol>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>One sentence that explains it</h4>
+        <p>
+          "An emitter leak is a listener that lives longer than its owner. The
+          closure keeps everything it touched alive, so it is not a few bytes. It is
+          the whole state. Always return an unsubscribe and call it on cleanup."
+        </p>
+      </div>
+    </div>
+
+    <h2 id="variants">Variations they might ask for</h2>
+
+    <details class="reveal">
+      <summary>Wildcard events, like <code>bus.on("user:*", fn)</code>.</summary>
+      <div class="body">
+        <p>
+          Keep a second map of patterns, or check every registered name against the
+          event being sent. Checking every pattern on each emit is slow if you have
+          thousands. Fine for a handful. Also decide the order: exact matches first,
+          then patterns, or strictly by the order they were added.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Should <code>emit</code> be synchronous?</summary>
+      <div class="body">
+        <p>
+          Node's is. Making it async, with <code>queueMicrotask</code> per listener,
+          means a listener that throws cannot break the sender. But it changes the
+          order things happen and makes debugging harder. Synchronous by default,
+          and let the caller decide if they want to delay.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>How do you test an emitter?</summary>
+      <div class="body">
+        <p>
+          Check how many times each event ran, that arguments were passed through,
+          that <code>once</code> ran exactly once, that unsubscribing really stops
+          delivery, and that <code>off</code> works with a wrapped handler. Also
+          test the remove-while-emitting case. That is the one most people forget.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>How is this different from <code>addEventListener</code>?</summary>
+      <div class="body">
+        <p>
+          The DOM gives you capture and bubble phases,
+          <code>preventDefault</code>, and control over propagation. An emitter is a
+          flat list with no tree. If you need a tree, use the DOM. If you need
+          modules that do not know about each other, use an emitter.
+        </p>
+      </div>
+    </details>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="quiz">
+      <summary>Why loop over a copy of the listener list in <code>emit</code>?</summary>
+      <div class="opts">
+        <div class="opt correct"><span class="mark">A</span> So a listener that unsubscribes does not skip the next one</div>
+        <div class="opt"><span class="mark">B</span> For speed</div>
+        <div class="opt"><span class="mark">C</span> To run them in reverse</div>
+      </div>
+      <div class="body"><p>Changing a list while looping is the bug. Copying is the fix. It costs one small allocation per emit.</p></div>
+    </details>
+
+    <details class="reveal">
+      <summary>How could you build <code>once</code> without a wrapper?</summary>
+      <div class="body">
+        <p>
+          Store objects like <code>{ handler, once: true }</code> and have
+          <code>emit</code> delete them after calling. That avoids the "the wrapper
+          is not the same function" problem in <code>off</code>, at the cost of a
+          slightly more complex <code>emit</code>. Both are fine. Pick one and say
+          why.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

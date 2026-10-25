@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debounce and throttle · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="debounce">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 2 · Coding questions</p>
+    <h1>Debounce and throttle</h1>
+    <p class="lead">
+      These two are asked more than any other pair. They test closures,
+      <code>this</code>, timers and API design in about thirty lines. The
+      difference is one sentence. Debounce waits for the user to stop. Throttle
+      allows one call every so often.
+    </p>
+
+    <h2 id="difference">The difference</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th></th><th>Debounce</th><th>Throttle</th></tr></thead>
+        <tbody>
+          <tr><td>Runs when</td><td>the calls have stopped for <code>wait</code> ms</td><td>at most once per <code>wait</code> ms</td></tr>
+          <tr><td>10 quick calls</td><td>runs once, at the end</td><td>runs about once per interval during the burst</td></tr>
+          <tr><td>How it works</td><td>cancel the old timer on every call</td><td>remember the last time it ran</td></tr>
+          <tr><td>Used for</td><td>search box, form checking, autosave</td><td>scroll, resize, drag, mouse move</td></tr>
+          <tr><td>Always runs?</td><td>only if the calls stop</td><td>yes, if you turn on the trailing call</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>The tell in an interview</h4>
+        <p>
+          If your code does not cancel the old timer, you wrote a throttle. If it
+          cancels and only runs on the first call, you wrote a debounce with
+          <code>leading</code> on. The requirements really are unclear, so ask which
+          one they want before you type.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="debounce">Debounce, full version</h2>
+    <p>
+      This version has options, passes <code>this</code> and the arguments through,
+      and adds <code>cancel</code> and <code>flush</code>. Those two methods are
+      what separate a good answer from a great one.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">debounce.js</span><span class="spacer"></span></div>
+<pre data-run><code>function debounce(fn, wait, { leading = false, trailing = true } = {}) {
+  let timer = null;
+  let lastArgs = null;
+  let lastThis = null;
+  let result;
+
+  function run() {
+    result = fn.apply(lastThis, lastArgs);
+    lastArgs = lastThis = null;
+    return result;
+  }
+
+  function debounced(...args) {
+    lastArgs = args;
+    lastThis = this;                // keep the caller's `this`
+
+    const isFirstCall = timer === null;
+    clearTimeout(timer);            // this line makes it a debounce
+
+    timer = setTimeout(() =&gt; {
+      timer = null;
+      if (trailing &amp;&amp; lastArgs) run();
+    }, wait);
+
+    if (leading &amp;&amp; isFirstCall) run();
+    return result;
+  }
+
+  debounced.cancel = () =&gt; {
+    clearTimeout(timer);
+    timer = null;
+    lastArgs = lastThis = null;
+  };
+
+  debounced.flush = () =&gt; {
+    if (timer !== null &amp;&amp; lastArgs) {
+      clearTimeout(timer);
+      timer = null;
+      return run();
+    }
+    return result;
+  };
+
+  return debounced;
+}
+
+// ── try it ──────────────────────────────────────────────
+let calls = 0;
+const search = debounce((q) =&gt; { calls++; console.log("searching for", q); }, 100);
+
+search("a");
+search("ab");
+search("abc");
+search("abcd");
+console.log("four quick calls done, nothing has run yet");
+
+setTimeout(() =&gt; console.log("after 250ms, calls =", calls), 250);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>Why not use an arrow for the wrapper</h4>
+        <p>
+          Because the debounced function is usually a method:
+          <code>this.handleInput = debounce(this.handleInput, 300)</code>. With an
+          arrow, <code>this</code> is fixed when debounce is created, so every
+          method call gets the wrong object. Use a normal <code>function</code> and
+          pass <code>this</code> on with <code>fn.apply(this, args)</code>.
+        </p>
+      </div>
+    </div>
+
+    <h3>Short version, if you run out of time</h3>
+    <div class="codeblock">
+      <div class="bar"><span class="label">debounce-min.js</span><span class="spacer"></span></div>
+<pre data-run><code>function debounce(fn, wait) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() =&gt; fn.apply(this, args), wait);
+  };
+}
+
+const log = debounce((msg) =&gt; console.log("ran with:", msg), 50);
+log("first");
+log("second");
+log("third");
+console.log("three calls queued, only the last one should run");</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      That is a fair interview answer. It handles <code>this</code> and the
+      arguments. It does not have <code>leading</code>, <code>trailing</code> or
+      <code>cancel</code>. Say what is missing and you keep the credit.
+    </p>
+
+    <h2 id="throttle">Throttle, full version</h2>
+    <p>
+      There are two ways to build this. This one checks the clock, and can also run
+      once at the end so the last event is not lost.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">throttle.js</span><span class="spacer"></span></div>
+<pre data-run><code>function throttle(fn, wait, { leading = true, trailing = true } = {}) {
+  let lastTime = 0;
+  let timer = null;
+  let lastArgs = null;
+  let lastThis = null;
+
+  function run() {
+    lastTime = Date.now();
+    const args = lastArgs;
+    const ctx = lastThis;
+    lastArgs = lastThis = null;
+    fn.apply(ctx, args);
+  }
+
+  function throttled(...args) {
+    const now = Date.now();
+    if (!lastTime &amp;&amp; !leading) lastTime = now;      // skip the first call
+
+    const remaining = wait - (now - lastTime);
+
+    if (remaining &lt;= 0) {
+      clearTimeout(timer);
+      timer = null;
+      lastArgs = args;
+      lastThis = this;
+      run();
+      return;
+    }
+
+    if (!timer &amp;&amp; trailing) {
+      lastArgs = args;
+      lastThis = this;
+      timer = setTimeout(() =&gt; {
+        timer = null;
+        run();
+      }, remaining);
+    }
+  }
+
+  throttled.cancel = () =&gt; {
+    clearTimeout(timer);
+    timer = null;
+    lastTime = 0;
+  };
+
+  return throttled;
+}
+
+// ── try it: 20 calls in about 60ms, limit 50ms ──────────
+let runs = 0;
+const onScroll = throttle(() =&gt; { runs++; }, 50);
+
+let n = 0;
+const burst = setInterval(() =&gt; {
+  onScroll();
+  if (++n === 20) {
+    clearInterval(burst);
+    setTimeout(() =&gt; console.log("ran", runs, "times from 20 quick calls"), 150);
+  }
+}, 3);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>The trailing call is the part people forget</h4>
+        <p>
+          Without it, the last event of a burst is dropped. For scroll position or
+          window size, that last value is the one the user cares about. If you only
+          build the leading call, say so.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="compare">What each option does</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Option</th><th>Debounce</th><th>Throttle</th></tr></thead>
+        <tbody>
+          <tr><td><code>leading: true</code></td><td>runs on the first call of a burst, then again after the calls stop</td><td>runs straight away, then limits the rest</td></tr>
+          <tr><td><code>trailing: true</code></td><td>runs after the calls stop. This is the default.</td><td>runs once more at the end of the window</td></tr>
+          <tr><td>both true</td><td>up to two runs per burst: start and end</td><td>one straight away, plus one at the end</td></tr>
+          <tr><td>both false</td><td>never runs. Valid, but useless.</td><td>never runs. Same.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="uses">Which one to use where</h2>
+    <div class="grid two">
+      <div class="card">
+        <h4>Debounce</h4>
+        <p>Search as you type, autosave, recalculating layout after a resize ends, checking a field once the user stops typing.</p>
+      </div>
+      <div class="card">
+        <h4>Throttle</h4>
+        <p>Scroll progress bars, drag handles, tracking mouse movement, checking for infinite scroll, limiting a like button.</p>
+      </div>
+    </div>
+
+    <p>
+      Both only limit work in the browser. They are not protection for your server.
+      Saying that shows you know where the line is.
+    </p>
+
+    <h2 id="followups">Likely follow-up questions</h2>
+
+    <details class="reveal">
+      <summary>"Add <code>maxWait</code> so it runs at least every N ms."</summary>
+      <div class="body">
+        <p>
+          Save the time of the last real run. On each call, if
+          <code>now - lastRunTime &gt;= maxWait</code>, run straight away. That is
+          lodash's <code>maxWait</code>: a debounce that becomes a throttle when
+          the input never stops. Autosave needs this. You do not want a user typing
+          for two minutes and never getting a save.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>"How do you test it?"</summary>
+      <div class="body">
+        <p>
+          With fake timers: <code>vi.useFakeTimers()</code> or
+          <code>jest.useFakeTimers()</code>. Call the function, move the fake clock,
+          then check how many times it ran. Check three things: the count, the
+          arguments of the last run, and that <code>this</code> was the right
+          object. Never test with real waiting.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>"How do you cancel a pending call when the component unmounts?"</summary>
+      <div class="body">
+        <p>
+          Use the <code>cancel</code> method in the cleanup function:
+          <code>useEffect(() =&gt; { const d = debounce(save, 500); return d.cancel; }, [])</code>.
+          Without it, a timer can fire after the component is gone and write to
+          state that no longer exists.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>"Can you await a debounced function?"</summary>
+      <div class="body">
+        <p>
+          Not really. It returns whatever the last run returned, which is usually
+          <code>undefined</code> on the first call. Callers cannot wait for a
+          pending call unless you wrap it in a promise yourself. That is a real
+          limitation of the API, and worth saying.
+        </p>
+      </div>
+    </details>
+
+    <div class="callout say">
+      <span class="ic">”</span>
+      <div>
+        <h4>Say this in an interview</h4>
+        <p>
+          "Debounce waits until the calls stop. Throttle caps how often it can run.
+          I'll keep the timer in a closure, pass <code>this</code> and the arguments
+          through with <code>apply</code>, and add <code>cancel</code> and
+          <code>flush</code> so the caller can clean up. Do you want leading,
+          trailing, or both?"
+        </p>
+      </div>
+    </div>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="quiz">
+      <summary>A debounced function is called 5 times with 100ms gaps, and <code>wait</code> is 200. How many times does it run?</summary>
+      <div class="opts">
+        <div class="opt correct"><span class="mark">A</span> Once. Each call resets the timer, and the gap is too short.</div>
+        <div class="opt"><span class="mark">B</span> Five times, once per call</div>
+        <div class="opt"><span class="mark">C</span> Twice, at the start and the end</div>
+      </div>
+      <div class="body"><p>With <code>leading: true</code> it would be twice.</p></div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why is <code>clearTimeout</code> safe on a timer that already ran?</summary>
+      <div class="body">
+        <p>
+          Because it does nothing for an unknown or finished id. So you can call it
+          without checking first. You should still set your variable to
+          <code>null</code>, because the code uses <code>timer === null</code> to
+          detect the first call.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Can you build throttle out of debounce?</summary>
+      <div class="body">
+        <p>
+          Partly. <code>debounce(fn, wait, { leading: true, trailing: true, maxWait: wait })</code>
+          behaves like a throttle. That is exactly how lodash does it: one function
+          with options, not two separate algorithms.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

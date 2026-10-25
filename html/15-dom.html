@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DOM and events · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="dom">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 2 · Coding questions</p>
+    <h1>The DOM and events</h1>
+    <p class="lead">
+      These questions only exist in front-end interviews. Interviewers look for two
+      things. Do you know the difference between a list that updates itself and a
+      list that does not? And can you attach one event listener instead of a
+      thousand?
+    </p>
+
+    <h2 id="model">The page is a tree</h2>
+    <p>
+      The page is a tree of nodes. Elements, text and comments are all nodes, with
+      different <code>nodeType</code> numbers. The difference that matters most in
+      practice: <strong>child nodes include text; children are elements only</strong>.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>You want</th><th>Elements only</th><th>All nodes</th></tr></thead>
+        <tbody>
+          <tr><td>Children</td><td><code>el.children</code></td><td><code>el.childNodes</code></td></tr>
+          <tr><td>First child</td><td><code>el.firstElementChild</code></td><td><code>el.firstChild</code></td></tr>
+          <tr><td>How many</td><td><code>el.childElementCount</code></td><td><code>el.childNodes.length</code></td></tr>
+          <tr><td>Parent</td><td><code>el.parentElement</code></td><td><code>el.parentNode</code></td></tr>
+          <tr><td>Next sibling</td><td><code>nextElementSibling</code></td><td><code>nextSibling</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      <code>childNodes</code> counts the whitespace between tags. That is why
+      <code>firstChild</code> on formatted HTML often gives a text node. It causes
+      real bugs, so mention it.
+    </p>
+
+    <h2 id="live">The headline question: live vs static</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">live-vs-static.js</span><span class="spacer"></span></div>
+<pre data-run><code>const host = document.createElement("div");
+host.innerHTML = "&lt;span class='a'&gt;1&lt;/span&gt;&lt;span class='a'&gt;2&lt;/span&gt;";
+
+const live = host.getElementsByClassName("a");     // updates itself
+const fixed = host.querySelectorAll(".a");         // a snapshot
+
+console.log("before:", live.length, fixed.length);
+
+const extra = document.createElement("span");
+extra.className = "a";
+extra.textContent = "3";
+host.appendChild(extra);
+
+console.log("after adding one:", live.length, fixed.length);
+console.log("live is an HTMLCollection:", live.constructor.name);
+console.log("fixed is a NodeList:", fixed.constructor.name);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>Why this matters in a loop</h4>
+        <p>
+          If you remove items while looping over a live list, you skip some. The
+          list renumbers as you go. Copy it first with <code>[...live]</code> or
+          <code>Array.from(live)</code>. <code>querySelectorAll</code> is safe to
+          loop because it does not change. But it also will not see items added
+          later.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="query">Finding elements</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">selectors.js</span><span class="spacer"></span></div>
+<pre data-run><code>const root = document.createElement("div");
+root.innerHTML = `
+  &lt;ul id="list"&gt;
+    &lt;li data-id="1"&gt;one&lt;/li&gt;
+    &lt;li data-id="2" class="active"&gt;two&lt;/li&gt;
+  &lt;/ul&gt;`;
+
+console.log("by id:", root.querySelector("#list").tagName);
+console.log("how many li:", root.querySelectorAll("li").length);
+console.log("first match:", root.querySelector(".active").dataset.id);
+
+// querySelector on an element searches only inside it
+const list = root.querySelector("#list");
+console.log("search inside the list:", list.querySelectorAll("li").length);
+
+// closest walks UP the tree, which is what event delegation needs
+console.log("closest ul:", root.querySelector(".active").closest("ul").id);
+
+// matches asks a yes/no question without moving anywhere
+console.log("matches the selector:", root.querySelector("li").matches("[data-id='1']"));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h2 id="mutate">Creating and changing elements</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">create.js</span><span class="spacer"></span></div>
+<pre data-run><code>const ul = document.createElement("ul");
+
+// 1. Build in a fragment, then attach once. One layout pass, not many.
+const frag = document.createDocumentFragment();
+for (let i = 1; i &lt;= 3; i++) {
+  const li = document.createElement("li");
+  li.textContent = "item " + i;      // textContent escapes, innerHTML does not
+  li.className = "row";
+  li.dataset.index = String(i);
+  frag.appendChild(li);
+}
+ul.appendChild(frag);
+console.log("children:", ul.children.length);
+console.log("fragment is now empty:", frag.childNodes.length);
+
+// 2. Shortcut methods for inserting
+const first = document.createElement("li");
+first.textContent = "prepended";
+ul.prepend(first);
+ul.children[1].before("text before");
+ul.children[1].after("text after");
+console.log("text now:", ul.textContent.replace(/\s+/g, " ").trim());
+
+// 3. textContent vs innerHTML
+const box = document.createElement("div");
+box.textContent = "&lt;b&gt;plain text&lt;/b&gt;";   // stays as text
+console.log("textContent gives:", box.innerHTML);
+
+box.innerHTML = "&lt;b&gt;real bold&lt;/b&gt;";       // becomes an element
+console.log("innerHTML gives:", box.innerHTML);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>Two things reviewers always catch</h4>
+        <ul>
+          <li><strong><code>innerHTML</code> with user data is a security hole.</strong> Use <code>textContent</code>, or clean the input first. Also, setting <code>innerHTML</code> destroys and rebuilds everything inside. Every listener on those elements is gone.</li>
+          <li><strong>Reading and writing layout in a loop.</strong> Reading <code>offsetHeight</code> after each write forces the browser to recalculate every time. Do all reads first, then all writes.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 id="events">How events travel</h2>
+    <p>
+      An event goes down from <code>window</code> to the target, then back up.
+      Down is the capture phase. Up is the bubble phase. Listeners run in the bubble
+      phase unless you pass <code>{ capture: true }</code>.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">phases.js</span><span class="spacer"></span></div>
+<pre data-run><code>const outer = document.createElement("div");
+const inner = document.createElement("span");
+outer.appendChild(inner);
+
+const order = [];
+outer.addEventListener("click", () =&gt; order.push("outer capture"), true);
+inner.addEventListener("click", () =&gt; order.push("inner target"));
+outer.addEventListener("click", () =&gt; order.push("outer bubble"), false);
+
+inner.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+console.log(order.join(" → "));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <h3>One listener for a list that keeps changing</h3>
+    <div class="codeblock">
+      <div class="bar"><span class="label">delegate.js</span><span class="spacer"></span></div>
+<pre data-run><code>const list = document.createElement("ul");
+list.innerHTML = `
+  &lt;li&gt;&lt;button data-id="a"&gt;A&lt;/button&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;button data-id="b"&gt;B&lt;/button&gt;&lt;/li&gt;`;
+
+const clicked = [];
+
+list.addEventListener("click", (event) =&gt; {
+  const btn = event.target.closest("button");   // walk up from the real target
+  if (!btn || !list.contains(btn)) return;      // ignore unrelated clicks
+  clicked.push(btn.dataset.id);
+});
+
+list.querySelectorAll("button").forEach((b) =&gt; b.click());
+
+// A button added later still works, because the listener is on the list
+const li = document.createElement("li");
+li.innerHTML = "&lt;button data-id='c'&gt;C&lt;/button&gt;";
+list.appendChild(li);
+li.querySelector("button").click();
+
+console.log("handled:", clicked, "· with 1 listener, not 3");</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>Why delegation is better</h4>
+        <p>
+          One listener instead of many. It survives re-rendering, because new
+          children are covered. It uses less memory. The cost: you must find the
+          real target with <code>closest()</code>, and you cannot use a separate
+          closure per item. Read the id from <code>dataset</code> instead. For long
+          lists, this is the default choice.
+        </p>
+      </div>
+    </div>
+
+    <h3>Removing listeners, and <code>once</code></h3>
+    <div class="codeblock">
+      <div class="bar"><span class="label">cleanup.js</span><span class="spacer"></span></div>
+<pre data-run><code>const el = document.createElement("button");
+let hits = 0;
+
+const handler = () =&gt; { hits++; };
+el.addEventListener("click", handler);
+el.click();
+
+el.removeEventListener("click", handler);
+el.click();
+console.log("after removing:", hits);
+
+// `once` removes it for you after the first call
+let onceHits = 0;
+el.addEventListener("click", () =&gt; { onceHits++; }, { once: true });
+el.click();
+el.click();
+console.log("with once:", onceHits);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      <code>removeEventListener</code> needs the exact same function and the same
+      capture flag. That is why named handlers exist, and why you can never remove
+      an inline arrow. In single-page apps that is a common leak.
+    </p>
+
+    <h2 id="implement">Writing <code>getElementsByClassName</code></h2>
+    <p>
+      The expected answer is a depth-first walk that collects matching elements. Two
+      details: the real method accepts several classes separated by spaces, and it
+      returns a live list.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">byClassName.js</span><span class="spacer"></span></div>
+<pre data-run><code>function getElementsByClassName(root, classNames) {
+  const wanted = classNames.trim().split(/\s+/);
+  const result = [];
+
+  (function walk(node) {
+    for (const child of node.children) {
+      if (wanted.every((c) =&gt; child.classList.contains(c))) result.push(child);
+      walk(child);
+    }
+  })(root);
+
+  return result;
+}
+
+function getElementsByTagName(root, tag) {
+  const result = [];
+  (function walk(node) {
+    for (const child of node.children) {
+      if (child.tagName === tag.toUpperCase()) result.push(child);
+      walk(child);
+    }
+  })(root);
+  return result;
+}
+
+const doc = document.createElement("div");
+doc.innerHTML = `
+  &lt;section class="card wide"&gt;&lt;p&gt;one&lt;/p&gt;&lt;/section&gt;
+  &lt;div class="card"&gt;&lt;span class="card wide"&gt;two&lt;/span&gt;&lt;/div&gt;`;
+
+console.log("one class:", getElementsByClassName(doc, "card").length);
+console.log("both classes:", getElementsByClassName(doc, "card wide").length);
+console.log("by tag:", getElementsByTagName(doc, "p").length);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout say">
+      <span class="ic">”</span>
+      <div>
+        <h4>Say this in an interview</h4>
+        <p>
+          "A depth-first walk over <code>children</code>, not
+          <code>childNodes</code>, so I skip text nodes. I'd mention that the real
+          method returns a live <code>HTMLCollection</code> and mine does not. And
+          that you must not change a live list while looping over it."
+        </p>
+      </div>
+    </div>
+
+    <h2 id="perf">Performance notes worth dropping</h2>
+    <ul>
+      <li><strong>Save lookups in a variable.</strong> Calling <code>querySelectorAll</code> inside a loop walks the tree again every time.</li>
+      <li><strong>Build with a fragment.</strong> One append of a fragment beats a hundred appends.</li>
+      <li><strong>Avoid layout thrashing.</strong> Mixing reads like <code>getBoundingClientRect</code> with writes forces a recalculation each time.</li>
+      <li><strong>Use <code>classList</code></strong> instead of editing <code>className</code> as a string.</li>
+      <li><strong>Use <code>IntersectionObserver</code></strong> instead of scroll listeners for "is it visible". It is cheaper and needs no throttling.</li>
+      <li><strong>Add <code>{ passive: true }</code></strong> to scroll and touch listeners, so the browser can scroll without waiting for your code.</li>
+    </ul>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="quiz">
+      <summary>You attach listeners to 500 rows, then rebuild the table with <code>innerHTML</code>. What breaks?</summary>
+      <div class="opts">
+        <div class="opt"><span class="mark">A</span> Nothing, listeners are re-attached</div>
+        <div class="opt correct"><span class="mark">B</span> The old elements are destroyed, so every listener is gone</div>
+        <div class="opt"><span class="mark">C</span> Only the last row keeps its listener</div>
+      </div>
+      <div class="body"><p>Setting <code>innerHTML</code> replaces everything inside. Delegation on the table avoids the whole problem.</p></div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why does <code>el.firstChild</code> sometimes give a text node?</summary>
+      <div class="body">
+        <p>
+          Because the space between tags is a real text node. Use
+          <code>firstElementChild</code> when you mean an element. This causes a
+          lot of "why is my child undefined" bugs.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>What is the difference between <code>stopPropagation</code> and <code>preventDefault</code>?</summary>
+      <div class="body">
+        <p>
+          <code>stopPropagation</code> stops the event reaching other listeners.
+          <code>preventDefault</code> stops the browser's own action, like following
+          a link or submitting a form. They are unrelated. A link's action can be
+          stopped while the event still bubbles.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>How would you close a menu when the user clicks outside it?</summary>
+      <div class="body">
+        <p>
+          Listen on <code>document</code> and check
+          <code>menu.contains(event.target)</code>. If it is false, close. Remove
+          the document listener when the menu disappears. Listening in the capture
+          phase lets you close before other handlers act.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

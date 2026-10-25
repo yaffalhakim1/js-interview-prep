@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock rubric and drills · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="mock">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 3 · Doing it well</p>
+    <h1>Practice and scoring</h1>
+    <p class="lead">
+      Month 3 is not more reading. It is timed practice and reading real code. This
+      page gives you a scoring sheet, six mock interviews, and the questions to ask
+      while reading lodash.
+    </p>
+
+    <h2 id="rubric">The scoring sheet</h2>
+    <p>
+      Give yourself 1 to 4 on each line after every mock. Anything below 3 becomes
+      next week's topic.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Skill</th><th>1 (weak)</th><th>3 (good)</th><th>4 (strong)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Understanding</strong></td>
+            <td>Starts coding before understanding the input</td>
+            <td>Says the problem back, names a plan</td>
+            <td>Names the plan and the one it rejected</td>
+          </tr>
+          <tr>
+            <td><strong>Correctness</strong></td>
+            <td>Fails the normal case</td>
+            <td>Normal case plus obvious edges</td>
+            <td>Empty input, empty slots, self-references, <code>this</code></td>
+          </tr>
+          <tr>
+            <td><strong>Craft</strong></td>
+            <td>Global state, unclear names</td>
+            <td>A pure function with a clear signature</td>
+            <td>Pure, states its limits, states the complexity</td>
+          </tr>
+          <tr>
+            <td><strong>Domain knowledge</strong></td>
+            <td>No mention of how the browser behaves</td>
+            <td>Knows the APIs used</td>
+            <td>Mentions speed, memory, and where the boundary is</td>
+          </tr>
+          <tr>
+            <td><strong>Communication</strong></td>
+            <td>Silent coding</td>
+            <td>Says what they are doing</td>
+            <td>Says it, checks in, invites correction</td>
+          </tr>
+          <tr>
+            <td><strong>Testing</strong></td>
+            <td>No tests</td>
+            <td>Walks through a few cases</td>
+            <td>Writes a table, runs it, fixes what fails out loud</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>18 out of 24 is the target</h4>
+        <p>
+          A steady 3 everywhere beats 4s on correctness and 1s on communication.
+          Interviewers are looking for a colleague, not a compiler.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="schedule">Six mocks, six weeks</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>Question</th><th>What it practises</th><th>Time</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td>Debounce with leading, trailing and cancel</td><td>Closures, <code>this</code>, API design</td><td class="num">35 min</td></tr>
+          <tr><td class="num">2</td><td><code>Promise.all</code> and <code>allSettled</code> from scratch</td><td>Keeping order, empty input</td><td class="num">35 min</td></tr>
+          <tr><td class="num">3</td><td>Deep clone with self-references, Map and Set</td><td>WeakMap, prototypes, type branches</td><td class="num">35 min</td></tr>
+          <tr><td class="num">4</td><td>Event emitter with <code>once</code> and unsubscribe</td><td>Object design, changing a list while looping</td><td class="num">35 min</td></tr>
+          <tr><td class="num">5</td><td>Curry with unknown arguments, and flatten without recursion</td><td>Recursion, argument counts, stack limits</td><td class="num">35 min</td></tr>
+          <tr><td class="num">6</td><td>Your weakest question, cold</td><td>Remembering under pressure</td><td class="num">35 min</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>How to do a mock on your own</h3>
+    <ol>
+      <li>Pick the question. Do not read your notes first.</li>
+      <li>Start a 35-minute timer. Record audio if you can. You will hear yourself hedge.</li>
+      <li>Talk the whole time, including the question phase. Pretend to be the interviewer too.</li>
+      <li>Write the test table before running anything.</li>
+      <li>Stop at 35 minutes even if you are not finished. Note where the time went.</li>
+      <li>Score the six lines. Compare with the solution. Write one sentence per line.</li>
+      <li>Do the same question again three days later. Target: under 20 minutes, no notes.</li>
+    </ol>
+
+    <h2 id="drills">Ten-minute drills</h2>
+    <p>
+      Short practice for days without a full block. One function, one edge case,
+      one explanation.
+    </p>
+    <div class="grid two">
+      <div class="card">
+        <h4>Closures</h4>
+        <p>Write <code>once</code>, <code>memoize</code>, a private counter, and the loop fix three ways.</p>
+      </div>
+      <div class="card">
+        <h4><code>this</code></h4>
+        <p>Write <code>myCall</code>, <code>myApply</code>, <code>myBind</code>. Then predict five mixed call shapes.</p>
+      </div>
+      <div class="card">
+        <h4>Event loop</h4>
+        <p>Write a snippet with a timer, a promise and an async function. Work out the order before you run it.</p>
+      </div>
+      <div class="card">
+        <h4>Array methods</h4>
+        <p><code>map</code>, <code>filter</code>, <code>reduce</code>, <code>find</code>. Then say the spec details from memory.</p>
+      </div>
+      <div class="card">
+        <h4>Async</h4>
+        <p>Write a mapper with a concurrency limit, and a timeout wrapper. Both without looking.</p>
+      </div>
+      <div class="card">
+        <h4>DOM</h4>
+        <p>A delegated click handler for a changing list, a walk for <code>getElementsByClassName</code>, and click-outside-to-close.</p>
+      </div>
+    </div>
+
+    <h2 id="source">Reading real source code</h2>
+    <p>
+      The strongest signal in this whole plan is being able to say "I read how lodash
+      does it, and here is why they need 200 lines." Read with these questions in
+      hand.
+    </p>
+
+    <h3>lodash <code>debounce</code></h3>
+    <ul>
+      <li>Where do <code>lastArgs</code>, <code>lastThis</code> and <code>lastCallTime</code> live? All in the closure.</li>
+      <li>How does <code>maxWait</code> work with the normal timer? It forces a run when the time since the last real call is too long.</li>
+      <li>Why does <code>cancel</code> also reset the last run time? So the next call counts as a fresh start.</li>
+      <li>What does <code>flush</code> return, and why save <code>result</code>? So the caller can read the last value straight away.</li>
+      <li>Notice: one function does both debounce and throttle through options. That is the design lesson.</li>
+    </ul>
+
+    <h3>clsx</h3>
+    <ul>
+      <li>It is under 300 bytes when compressed. How does it avoid recursion? A <code>while</code> loop over the arguments.</li>
+      <li>How does it treat numbers and <code>0</code>?</li>
+      <li>Why return <code>""</code> instead of <code>undefined</code>?</li>
+    </ul>
+
+    <h3>eventemitter3</h3>
+    <ul>
+      <li>How does it avoid making an array per event? One flat array of names and handlers.</li>
+      <li>What happens if a listener is removed while <code>emit</code> runs?</li>
+      <li>Why does it treat one, two and three listeners as special cases? A fast path before the general loop.</li>
+    </ul>
+
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>A line to use in an interview</h4>
+        <p>
+          "I've read lodash's debounce. It is long because it supports
+          <code>maxWait</code>, leading, trailing, cancel, flush and returning the
+          last value, all in one function. The core is the same closure over a
+          timer. The rest is option handling."
+        </p>
+      </div>
+    </div>
+
+    <h2 id="final">The last week</h2>
+    <ul>
+      <li><strong>Stop learning new topics.</strong> Go over what you already have.</li>
+      <li><strong>Redo your six mocks</strong> from memory, under 20 minutes each.</li>
+      <li><strong>Write three stories</strong>: a bug you found, a speed-up you made, and a design choice you argued for. Ninety seconds each.</li>
+      <li><strong>Sleep.</strong> A rested person scoring 3 beats a tired person scoring 4. That is not a cliché.</li>
+    </ul>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="reveal">
+      <summary>You scored 2 on Testing twice in a row. What do you change?</summary>
+      <div class="body">
+        <p>
+          Make the test table a hard rule before running anything. Literally type
+          "case / expected / actual" in the editor first. The habit has to be
+          automatic, because under pressure you skip anything optional.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why redo the same question instead of a new one?</summary>
+      <div class="body">
+        <p>
+          Because you are practising recall speed. A second pass removes the design
+          uncertainty, so you can practise the part that is actually scored: talking
+          through it, testing it, and naming tradeoffs. A new question practises
+          discovery, which you have already done.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

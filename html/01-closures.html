@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Closures · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="closures">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 1 · Language basics</p>
+    <h1>Closures</h1>
+    <p class="lead">
+      A closure is a scope that stays alive after its function returns. That is the
+      whole idea. It is not a new feature and not a new kind of function. It is the
+      name for what happens when an inner function keeps its outer scope alive. You
+      will see why that matters in the first example.
+    </p>
+
+    <h2 id="what">What a closure is</h2>
+    <p>
+      When you create a function, it remembers the variables around it. Those
+      variables stay alive as long as the function exists.
+    </p>
+
+    <p>
+      That is the mechanism. Now the question that matters: why would anyone care
+      about a variable staying alive? Because it lets a function keep state between
+      calls without using a global variable.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">closure.js</span><span class="spacer"></span></div>
+<pre data-run><code>function outer() {
+  const x = 1;               // x lives in outer's scope
+
+  function inner() {
+    return x;                // inner can read x
+  }
+
+  return inner;
+}
+
+const fn = outer();          // outer has finished running
+console.log(fn());           // 1, and x is still alive</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      <code>outer()</code> has returned. Normally its variables would be gone. But
+      <code>inner</code> still points at <code>x</code>, so <code>x</code> stays in
+      memory. That is the whole idea.
+    </p>
+
+    <h2 id="survived">The only thing that makes it a closure</h2>
+    <p>
+      If a closure feels like "just a scope", you are right. It is a scope. The
+      difference is what happens to that scope when the function returns.
+    </p>
+
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>A closure is a scope that did not die</h4>
+        <p>
+          Normally a scope is thrown away when its function returns. A closure is
+          the case where the scope stays alive, because a function still points at
+          it. Nothing new is created. Something old is kept.
+        </p>
+      </div>
+    </div>
+
+    <p>
+      Here are two functions. The only difference is what each one returns.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">A: returns a number</span><span class="spacer"></span></div>
+<pre data-run><code>function plain() {
+  let count = 0;        // a new `count` on every call
+  return ++count;
+}
+
+console.log(plain());   // 1
+console.log(plain());   // 1  <- it forgot
+console.log(plain());   // 1  <- it forgot again</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      Every call makes a fresh <code>count</code>. When the call ends, that scope is
+      thrown away. The next call starts from zero again.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">B: returns a function</span><span class="spacer"></span></div>
+<pre data-run><code>function makeCounter() {
+  let count = 0;
+  return function () { return ++count; };   // this function escapes
+}
+
+const c = makeCounter();
+console.log(c());       // 1
+console.log(c());       // 2  <- it remembered
+console.log(c());       // 3  <- it remembered again</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      Same <code>let count = 0</code>. Same scope. The difference is that
+      <code>makeCounter</code> returned the inner function, and that function still
+      points at <code>count</code>. So the scope cannot be thrown away.
+      <strong>That survival is the closure.</strong>
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th></th><th>A: returns a number</th><th>B: returns a function</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>What the call returns</td><td><code>1</code></td><td>a function</td></tr>
+          <tr><td>Does anything point at the scope?</td><td>No</td><td>Yes, the returned function</td></tr>
+          <tr><td>What happens to the scope</td><td>Thrown away</td><td>Kept alive</td></tr>
+          <tr><td>Second call starts from</td><td><code>count = 0</code></td><td><code>count = 1</code></td></tr>
+          <tr><td>Name for this</td><td>Just a scope</td><td>A closure</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The proof: two functions sharing one scope</h3>
+    <p>
+      If the scope were copied, two functions could not see each other's changes.
+      They can. That only works if they share one scope that is still alive.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">shared scope</span><span class="spacer"></span></div>
+<pre data-run><code>function makeCounter() {
+  let count = 0;
+  return {
+    next: () =&gt; ++count,     // changes count
+    peek: () =&gt; count        // reads the same count
+  };
+}
+
+const counter = makeCounter();
+counter.next();
+counter.next();
+
+console.log("peek sees the change:", counter.peek());   // 2
+
+// A second call to makeCounter makes a NEW scope, so a new counter
+const other = makeCounter();
+other.next();
+
+console.log("first counter:", counter.peek());   // 2
+console.log("second counter:", other.peek());    // 1</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      <code>next</code> and <code>peek</code> share one <code>count</code>, because
+      both were made inside the same call. <code>other</code> has its own
+      <code>count</code>, because it came from a different call. So a closure is not
+      one function remembering things. It is a scope that several functions share,
+      which stays alive as long as any of them exists.
+    </p>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>Why you cannot see a closure</h4>
+        <p>
+          Inside a single function call, a closure looks exactly like a normal scope.
+          Nothing is different yet. You only notice it when a second call remembers
+          something from the first. That is why the idea feels slippery: the effect
+          only appears after the function has already finished.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="scope">Why it works: scope</h2>
+    <p>
+      JavaScript looks up a variable name by <strong>where the function was
+      written</strong>, not where it was called. This is called lexical scope.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">scope chain</span><span class="spacer"></span></div>
+<pre><code>function outer() {
+  const x = 1;
+
+  function middle() {
+    function inner() {
+      return x;              // look in inner, then middle, then outer: found
+    }
+    return inner;
+  }
+  return middle();
+}</code></pre>
+    </div>
+
+    <p>
+      When <code>inner</code> asks for <code>x</code>, the engine checks three
+      places in order: <code>inner</code>, then <code>middle</code>, then
+      <code>outer</code>. This chain of scopes is fixed when the code is written.
+      Renaming things at the call site does not change it.
+    </p>
+
+    <h2 id="private">Use 1: private state</h2>
+    <p>
+      A closure lets you keep data that outside code cannot touch. You only expose
+      the functions you choose.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">counter.js</span><span class="spacer"></span></div>
+<pre data-run><code>function createCounter(start = 0) {
+  let count = start;               // only these methods can see `count`
+
+  return {
+    increment() { return ++count; },
+    decrement() { return --count; },
+    get value() { return count; }
+  };
+}
+
+const c = createCounter(10);
+c.increment();
+c.increment();
+
+console.log("value:", c.value);
+console.log("can I read count directly?", c.count);   // undefined</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      <code>count</code> is not a property of the returned object. So nobody
+      outside can read or change it. They must go through
+      <code>increment</code> and <code>decrement</code>.
+    </p>
+
+    <h3>Short example: run a function only once</h3>
+    <p>
+      This is a common interview question. The answer is one variable that
+      remembers whether we already ran.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">once.js</span><span class="spacer"></span></div>
+<pre data-run><code>function once(fn) {
+  let called = false;
+  let result;
+
+  return function (...args) {
+    if (!called) {
+      called = true;
+      result = fn.apply(this, args);   // save the value for later calls
+    }
+    return result;
+  };
+}
+
+let runs = 0;
+const init = once(() => { runs++; return "ready"; });
+
+console.log(init(), init(), init());
+console.log("fn ran", runs, "time(s)");</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      The second and third calls return the saved value. They do not run
+      <code>fn</code> again.
+    </p>
+
+    <h2 id="binding">Closures remember the variable, not the value</h2>
+    <p>
+      This part confuses many people. A closure does not copy the number. It keeps
+      a link to the variable. If the variable changes later, the closure sees the
+      new value.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">same variable</span><span class="spacer"></span></div>
+<pre data-run><code>function makeAdders() {
+  const adders = [];
+
+  for (var i = 0; i &lt; 3; i++) {
+    adders.push(function () { return i; });
+  }
+  return adders;
+}
+
+console.log(makeAdders().map(f =&gt; f()));   // [3, 3, 3]</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      All three functions were created inside the same <code>var i</code> loop. So
+      all three read the same <code>i</code>. By the time we call them, the loop
+      has finished and <code>i</code> is 3. The output is <code>[3, 3, 3]</code>.
+    </p>
+
+    <h3>Three ways to fix it</h3>
+    <div class="codeblock">
+      <div class="bar"><span class="label">three fixes</span><span class="spacer"></span></div>
+<pre data-run><code>// 1. `let` creates a new variable on every loop run
+const a = [];
+for (let i = 0; i &lt; 3; i++) a.push(() =&gt; i);
+
+// 2. An IIFE gives each function its own copy as a parameter
+const b = [];
+for (var i = 0; i &lt; 3; i++) {
+  b.push((function (j) { return function () { return j; }; })(i));
+}
+
+// 3. A separate function does the same thing more clearly
+function makeGetter(j) { return function () { return j; }; }
+const c = [];
+for (var k = 0; k &lt; 3; k++) c.push(makeGetter(k));
+
+console.log(a.map(f =&gt; f()), b.map(f =&gt; f()), c.map(f =&gt; f()));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>The same trap with setTimeout</h4>
+        <p>
+          <code>for (var i = 0; i &lt; 3; i++) setTimeout(() =&gt; console.log(i))</code>
+          prints <code>3 3 3</code>. The timers run after the loop has finished.
+          Change <code>var</code> to <code>let</code> and you get
+          <code>0 1 2</code>.
+        </p>
+        <p>
+          Interviewers use this to test closures and timers at the same time.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="stale">Old values: the stale closure bug</h2>
+    <p>
+      A closure sees the live variable. So if a callback is created once and the
+      variable changes later, the callback may read an old value. This is a real
+      bug you will meet in React.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">stale.js</span><span class="spacer"></span></div>
+<pre data-run><code>function attach() {
+  let count = 0;
+  const read = () =&gt; count;   // reads the live variable
+
+  count = 42;                 // changed after the function was created
+  return read;
+}
+
+console.log("read after change:", attach()());   // 42, not 0</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      In React the same thing happens with <code>setInterval</code>. The callback
+      is created once, so it keeps printing the first <code>count</code> forever.
+      The fix is a dependency array or a ref.
+    </p>
+
+    <h2 id="memory">Memory: what keeps a closure alive</h2>
+    <p>
+      A closure keeps its variables in memory while anything can still call it.
+      Usually that is good. It becomes a leak when a long-lived listener holds
+      something large.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">leak.js</span><span class="spacer"></span></div>
+<pre><code>// Leak: this listener lives forever and holds `hugeModel`
+window.addEventListener("resize", () =&gt; render(hugeModel));
+
+// Fix: remove the listener when you no longer need it
+function setup() {
+  const handler = () =&gt; render(hugeModel);
+  window.addEventListener("resize", handler);
+  return () =&gt; window.removeEventListener("resize", handler);
+}</code></pre>
+    </div>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>A good sentence to say</h4>
+        <p>
+          "A closure keeps its variables alive. The leak is not the closure itself.
+          It is a listener or timer that stays attached after we are done with it.
+          Remove the listener and the memory is freed."
+        </p>
+      </div>
+    </div>
+
+    <h2 id="uses">Where closures appear in questions</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Question</th><th>What the closure holds</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Debounce / throttle</td><td>The timer id and the last arguments</td></tr>
+          <tr><td>Curry</td><td>The arguments collected so far</td></tr>
+          <tr><td>Memoize</td><td>The cache</td></tr>
+          <tr><td>Once</td><td>The "already ran" flag</td></tr>
+          <tr><td>Event emitter</td><td>The list of listeners</td></tr>
+          <tr><td>Private state</td><td>Variables the outside cannot see</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout say">
+      <span class="ic">”</span>
+      <div>
+        <h4>Say this in an interview</h4>
+        <p>
+          "A closure is a function that remembers the scope where it was created.
+          In this debounce, the returned function remembers <code>timer</code> and
+          <code>lastArgs</code>. So the state survives between calls, and the caller
+          cannot see it."
+        </p>
+      </div>
+    </div>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="reveal">
+      <summary>What does this print?</summary>
+      <div class="body">
+<pre>function build() {
+  const out = [];
+  for (var i = 0; i &lt; 2; i++) out.push(() =&gt; i);
+  return out;
+}
+console.log(build()[0](), build()[1]());</pre>
+        <p>
+          <code>2 2</code>. Both functions read the same <code>var</code>, which
+          ends at 2. Each <code>build()</code> call makes a new scope, but inside
+          one call both functions share it.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why does <code>once</code> save the result?</summary>
+      <div class="body">
+        <p>
+          Because the first call may return something useful. If later calls
+          returned <code>undefined</code>, callers would get different types at
+          different times. Saving the value keeps the behaviour predictable.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Does a closure copy a variable or keep a link to it?</summary>
+      <div class="body">
+        <p>
+          It keeps a link. If you change the variable later, the closure sees the
+          new value. To get a separate copy, create a new variable. That is what
+          <code>let</code> does on each loop run.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>How would you explain a stale closure to a friend?</summary>
+      <div class="body">
+        <p>
+          "The callback was made earlier and never updated. So it keeps reading the
+          value from when it was made. To fix it, make the callback again when the
+          value changes, or read the value from something stable like a ref."
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

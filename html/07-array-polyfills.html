@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Array method polyfills · JS Interview Prep</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="array-polyfills">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="layout">
+  <nav id="sidebar" class="sidebar" aria-label="Course contents"></nav>
+
+  <main id="main" class="main prose">
+    <p class="eyebrow">Month 1 · Language basics</p>
+    <h1>Array methods you write yourself</h1>
+    <p class="lead">
+      Writing <code>map</code> from scratch looks easy. Interviewers score it on
+      the small details: the three arguments the callback gets, the optional
+      <code>thisArg</code>, empty slots in arrays, and whether you change the
+      original. Get those right and you show that you read the rules, not just
+      examples.
+    </p>
+
+    <h2 id="why">Why interviewers still ask this</h2>
+    <p>
+      In the past, browsers did not all support these methods. So developers wrote
+      their own copies. That is called a polyfill. Today the question tests three
+      things: do you understand functions that take other functions, do you know
+      the exact contract, and can you handle the edge cases.
+    </p>
+
+    <h2 id="map">map</h2>
+    <p>
+      <code>map</code> makes a new array. Each item is replaced by whatever the
+      callback returns. The new array has the same length.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">myMap.js</span><span class="spacer"></span></div>
+<pre data-run><code>Array.prototype.myMap = function (callback, thisArg) {
+  if (typeof callback !== "function") {
+    throw new TypeError(callback + " is not a function");
+  }
+
+  const len = this.length &gt;&gt;&gt; 0;      // force a safe whole number
+  const result = new Array(len);       // same length, empty slots kept
+
+  for (let i = 0; i &lt; len; i++) {
+    if (i in this) {                   // skip empty slots
+      result[i] = callback.call(thisArg, this[i], i, this);
+    }
+  }
+  return result;
+};
+
+console.log([1, 2, 3].myMap((v) =&gt; v * 2));
+
+// thisArg becomes `this` inside the callback
+const ctx = { factor: 10 };
+console.log([1, 2].myMap(function (v) { return v * this.factor; }, ctx));
+
+// Empty slots stay empty. They are not filled with undefined.
+const sparse = [1, , 3];
+console.log("result:", sparse.myMap((v) =&gt; v * 2));
+console.log("slot 1 still empty:", !(1 in sparse.myMap((v) =&gt; v * 2)));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>Four details to mention</h4>
+        <ul>
+          <li>The callback gets three arguments: the item, the index, and the whole array. <code>thisArg</code> is separate, not a fourth argument.</li>
+          <li>Inside the callback, <code>this</code> is <code>thisArg</code>. In strict mode it is <code>undefined</code> when you do not pass one.</li>
+          <li>The length is read once, before the loop. Items added during the loop are not visited.</li>
+          <li>Empty slots are skipped, and stay empty in the result.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p>
+      The full rule about changes during the loop: items added later are never
+      visited. Items changed before being visited give their new value. Items
+      deleted before being visited are skipped. You rarely implement this, but
+      saying it out loud shows depth.
+    </p>
+
+    <h2 id="filter">filter</h2>
+    <p>
+      <code>filter</code> makes a new array with only the items where the callback
+      returned true.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">myFilter.js</span><span class="spacer"></span></div>
+<pre data-run><code>Array.prototype.myFilter = function (callback, thisArg) {
+  if (typeof callback !== "function") throw new TypeError("need a function");
+
+  const result = [];
+  for (let i = 0; i &lt; this.length; i++) {
+    if (i in this &amp;&amp; callback.call(thisArg, this[i], i, this)) {
+      result.push(this[i]);
+    }
+  }
+  return result;
+};
+
+console.log([1, 2, 3, 4].myFilter((n) =&gt; n % 2 === 0));
+console.log(["a", "bb", "ccc"].myFilter((s) =&gt; s.length &gt; 1));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      <code>filter</code> never changes the original array. A common follow-up
+      question: what does <code>filter(Boolean)</code> do? It removes every value
+      that counts as false, including <code>0</code> and <code>""</code>. That is
+      often a bug.
+    </p>
+
+    <h2 id="reduce">reduce</h2>
+    <p>
+      The argument order catches people out. The callback is
+      <code>(accumulator, current, index, array)</code>. The accumulator comes
+      first. And there are two cases: with a starting value, and without one.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">myReduce.js</span><span class="spacer"></span></div>
+<pre data-run><code>Array.prototype.myReduce = function (callback, initialValue) {
+  if (typeof callback !== "function") throw new TypeError("need a function");
+
+  const len = this.length &gt;&gt;&gt; 0;
+  let i = 0;
+  let acc;
+
+  if (arguments.length &gt;= 2) {
+    acc = initialValue;              // a starting value was passed
+  } else {
+    // no starting value: the first real item becomes the accumulator
+    while (i &lt; len &amp;&amp; !(i in this)) i++;
+    if (i &gt;= len) {
+      throw new TypeError("Reduce of empty array with no initial value");
+    }
+    acc = this[i++];
+  }
+
+  for (; i &lt; len; i++) {
+    if (i in this) acc = callback(acc, this[i], i, this);
+  }
+  return acc;
+};
+
+console.log([1, 2, 3, 4].myReduce((sum, n) =&gt; sum + n, 0));
+console.log([1, 2, 3].myReduce((a, b) =&gt; a + b));    // no start value, gives 6
+
+try {
+  [].myReduce((a, b) =&gt; a + b);
+} catch (e) {
+  console.log("empty array:", e.name);
+}
+
+// Counting things is the most common real use
+const words = ["a", "b", "a", "c", "a"];
+console.log(words.myReduce((acc, w) =&gt; {
+  acc[w] = (acc[w] || 0) + 1;
+  return acc;
+}, {}));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="ic">!</span>
+      <div>
+        <h4>The empty array trap</h4>
+        <p>
+          <code>[].reduce(fn)</code> throws a <code>TypeError</code>. But
+          <code>[].reduce(fn, 0)</code> returns <code>0</code>. So always pass a
+          starting value. Note the check uses <code>arguments.length</code>, not
+          <code>initialValue === undefined</code>. Passing
+          <code>undefined</code> on purpose still counts as passing a value.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="foreach">forEach and find, for comparison</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">forEach / find</span><span class="spacer"></span></div>
+<pre data-run><code>Array.prototype.myForEach = function (callback, thisArg) {
+  for (let i = 0; i &lt; this.length; i++) {
+    if (i in this) callback.call(thisArg, this[i], i, this);
+  }
+  // returns nothing on purpose
+};
+
+Array.prototype.myFind = function (predicate, thisArg) {
+  for (let i = 0; i &lt; this.length; i++) {
+    if (i in this &amp;&amp; predicate.call(thisArg, this[i], i, this)) return this[i];
+  }
+  return undefined;      // find gives undefined, findIndex gives -1
+};
+
+const log = [];
+[1, 2, 3].myForEach((v, i) =&gt; log.push(`${i}:${v}`));
+console.log(log.join(", "));
+
+console.log("found:", [5, 8, 12].myFind((n) =&gt; n &gt; 6));
+console.log("not found:", [1].myFind((n) =&gt; n &gt; 6));</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      <code>forEach</code> returns nothing and you cannot break out of it early.
+      It is not a loop. If you need to stop early, use <code>some</code>,
+      <code>every</code>, <code>find</code>, or a normal <code>for</code> loop.
+    </p>
+
+    <h2 id="chain">Chaining has a cost</h2>
+    <div class="codeblock">
+      <div class="bar"><span class="label">cost.js</span><span class="spacer"></span></div>
+<pre data-run><code>const rows = Array.from({ length: 1_000_000 }, (_, i) =&gt; i);
+
+// Three passes, three temporary arrays
+let t = performance.now();
+const a = rows
+  .filter((n) =&gt; n % 2 === 0)
+  .map((n) =&gt; n * 2)
+  .reduce((s, n) =&gt; s + n, 0);
+const chainedMs = performance.now() - t;
+
+// One pass
+const b = rows.reduce((s, n) =&gt; (n % 2 === 0 ? s + n * 2 : s), 0);
+
+console.log("same answer:", a === b);
+console.log("chained version took:", chainedMs.toFixed(1), "ms");</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      Each method takes O(n) time. Chaining three of them is still O(n), but it
+      makes three temporary arrays. That is fine for normal page data and wasteful
+      for millions of rows. Saying that shows you have used these methods on real
+      data.
+    </p>
+
+    <h2 id="mistakes">Mistakes to avoid</h2>
+    <ul>
+      <li><strong>Not throwing when the callback is not a function.</strong> The real methods throw <code>TypeError</code>.</li>
+      <li><strong>Forgetting <code>thisArg</code>.</strong> The most commonly missed detail.</li>
+      <li><strong>Using <code>for...in</code>.</strong> It also walks inherited keys.</li>
+      <li><strong>Reading <code>this.length</code> on every loop run.</strong> Save it in a variable.</li>
+      <li><strong>Changing the array inside the callback.</strong> Just mention it rather than handling it.</li>
+      <li><strong>Thinking <code>map</code> fills empty slots.</strong> It does not.</li>
+    </ul>
+
+    <div class="callout say">
+      <span class="ic">”</span>
+      <div>
+        <h4>Say this in an interview</h4>
+        <p>
+          "I'll write map to the spec. Check the callback is a function. Read the
+          length once. Loop by index so I can skip empty slots. Call the callback
+          with the item, the index and the array, and set <code>thisArg</code>. It
+          returns a new array of the same length and never changes the original."
+        </p>
+      </div>
+    </div>
+
+    <h2 id="check">Check yourself</h2>
+
+    <details class="reveal">
+      <summary>What does <code>[1,2,3].map(parseInt)</code> return?</summary>
+      <div class="body">
+        <p>
+          <code>[1, NaN, NaN]</code>. <code>map</code> passes the index as the
+          second argument. <code>parseInt</code> reads that second argument as the
+          base. So it tries base 1, then base 2, and fails. The fix is
+          <code>map(Number)</code> or <code>map((v) =&gt; parseInt(v, 10))</code>.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Why is the accumulator the first argument of <code>reduce</code>?</summary>
+      <div class="body">
+        <p>
+          Because the accumulator is the value you carry forward, and the callback
+          returns it. Putting it first also lets you pass a plain two-argument
+          function like <code>Math.max</code> straight in.
+        </p>
+      </div>
+    </details>
+
+    <details class="reveal">
+      <summary>Does <code>map</code> change the original array?</summary>
+      <div class="body">
+        <p>
+          No, it returns a new array. But if the items are objects and your callback
+          changes them, the original objects change too. "Does not change the array"
+          and "does not change the items" are different promises.
+        </p>
+      </div>
+    </details>
+
+    <div class="pagefoot"></div>
+  </main>
+
+  <aside id="rail" class="rail"></aside>
+</div>
+
+<script src="assets/nav.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
