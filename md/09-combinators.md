@@ -5,7 +5,10 @@
 
 # Promise.all and friends
 
-There are four helpers for running several promises together. They share the same traps: keep the results in input order, handle an empty list, and accept plain values. Writing `all` takes fifteen lines. The score comes from explaining when to use the other three.
+There are four helpers for running several promises together. They share the
+same traps: keep the results in input order, handle an empty list, and accept
+plain values. Writing `all` takes fifteen lines. The score comes from
+explaining when to use the other three.
 
 ## 1. The four, side by side
 
@@ -16,15 +19,15 @@ There are four helpers for running several promises together. They share the sam
 | `any` | the first success | all of them fail | you have backups, first one wins |
 | `race` | whichever finishes first | if that one failed | a timeout, or the fastest source |
 
-**Why this matters**
+> **Two words that decide your answer**
 
-**Two words that decide your answer**
-
-`all` stops at the **first** failure. It does not wait for the rest. `any` waits for the **last** failure before giving up. Mixing those up is the most common mistake in this question.
+`all` stops at the **first** failure. It does not wait for the rest. `any`
+waits for the **last** failure before giving up. Mixing those up is the most
+common mistake in this question.
 
 ## 2. Writing Promise.all
 
-**promiseAll.js**
+*promiseAll.js*
 
 ```js
 function promiseAll(list) {
@@ -56,9 +59,7 @@ promiseAll([Promise.reject(new Error("nope")), slow("ignored", 10)])
 promiseAll([]).then((v) => console.log("empty list:", v));
 ```
 
-**Watch out**
-
-**Three bugs that keep appearing**
+> **Three bugs that keep appearing**
 
 1. **Pushing as each one finishes.** Then the order is finish order, which is wrong. Use the index.
 2. **Not handling an empty list.** The promise stays pending forever. This has frozen real apps.
@@ -66,9 +67,10 @@ promiseAll([]).then((v) => console.log("empty list:", v));
 
 ## 3. Writing allSettled
 
-Same idea, but every failure is turned into a normal value. So the outer promise can never fail.
+Same idea, but every failure is turned into a normal value. So the outer
+promise can never fail.
 
-**allSettled.js**
+*allSettled.js*
 
 ```js
 function allSettled(list) {
@@ -92,11 +94,13 @@ allSettled([ok, bad, "plain value"]).then((results) => {
 });
 ```
 
-This is the one to use for bulk work. Upload ten files, report which ones failed, keep the ones that worked. In an interview, the phrase "some may fail and that is fine" is what shows you know when to use it.
+This is the one to use for bulk work. Upload ten files, report which ones
+failed, keep the ones that worked. In an interview, the phrase "some may fail
+and that is fine" is what shows you know when to use it.
 
 ## 4. Writing Promise.any
 
-**promiseAny.js**
+*promiseAny.js*
 
 ```js
 function promiseAny(list) {
@@ -131,11 +135,12 @@ promiseAny([fail("x", 5), fail("y", 10)])
   });
 ```
 
-`AggregateError` is a real error type with an `errors` array. Most people miss that.
+`AggregateError` is a real error type with an `errors` array. Most people miss
+that.
 
 ## 5. Writing Promise.race
 
-**promiseRace.js**
+*promiseRace.js*
 
 ```js
 function promiseRace(list) {
@@ -164,17 +169,19 @@ withTimeout(slow("too late", 100), 20)
   .catch((e) => console.log("timeout:", e.message));
 ```
 
-**Tip**
+> **race does not stop the loser**
 
-**race does not stop the loser**
-
-The slower promise keeps running. Its result is just ignored. If the work is a `fetch`, pass an `AbortController` signal so the request is actually cancelled. Otherwise you saved time but not bandwidth. Saying this is a strong signal.
+The slower promise keeps running. Its result is just ignored. If the work is a
+`fetch`, pass an `AbortController` signal so the request is actually
+cancelled. Otherwise you saved time but not bandwidth. Saying this is a strong
+signal.
 
 ## 6. The real follow-up: limit how many run at once
 
-`Promise.all` on 10,000 URLs opens 10,000 requests. The practical answer is a pool that only runs a few at a time.
+`Promise.all` on 10,000 URLs opens 10,000 requests. The practical answer is a
+pool that only runs a few at a time.
 
-**mapLimit.js**
+*mapLimit.js*
 
 ```js
 async function mapLimit(items, limit, worker) {
@@ -199,30 +206,40 @@ mapLimit([1, 2, 3, 4, 5, 6], 2, work)
   .then((v) => console.log("results:", v));
 ```
 
-Note the important part: `next++` happens immediately, so two workers can never grab the same index. That is what makes it safe.
+Note the important part: `next++` happens immediately, so two workers can
+never grab the same index. That is what makes it safe.
 
 ## 7. Check yourself
 
-**Quiz:** Promise.all([p1, p2]), where p1 fails at 10ms and p2 succeeds at 50ms. What happens?
+**Quiz:** Promise.all([p1, p2]), where p1 fails at 10ms and p2 succeeds at
+50ms. What happens?
 
 Options:
+
 - A. It fails at 10ms, and p2's value is thrown away **← correct**
 - B. It waits for both, then fails
 - C. It succeeds with a missing value
 
-`all` stops at the first failure. `allSettled` is the one that waits for everything.
+`all` stops at the first failure. `allSettled` is the one that waits for
+everything.
 
-**Check:** Why does Promise.all([]) finish at once, but Promise.race([]) never finishes?
+**Check:** Why does Promise.all([]) finish at once, but Promise.race([]) never
+finishes?
 
-`all` knows there is nothing left to wait for, so it gives an empty array. `race` needs one promise to finish, and there are none, so it waits forever.
+`all` knows there is nothing left to wait for, so it gives an empty array.
+`race` needs one promise to finish, and there are none, so it waits forever.
 
 **Check:** Can allSettled ever fail?
 
-Not because of its inputs, that is the whole point. It can still throw immediately if you pass something that is not a list, because the argument is checked before the promise work starts.
+Not because of its inputs, that is the whole point. It can still throw
+immediately if you pass something that is not a list, because the argument is
+checked before the promise work starts.
 
 **Check:** How would you try three mirrors and take the first that works?
 
-`Promise.any(mirrors.map(fetchFrom))`, then `.catch(() => fallback())` for when all three fail. If you also need a time limit, race the whole thing against a timer.
+`Promise.any(mirrors.map(fetchFrom))`, then `.catch(() => fallback())` for
+when all three fail. If you also need a time limit, race the whole thing
+against a timer.
 
 ---
 

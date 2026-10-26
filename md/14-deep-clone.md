@@ -5,11 +5,14 @@
 
 # Deep clone
 
-Deep clone copies an object and everything inside it. This question walks through JavaScript's object model: objects that contain themselves, prototypes, `Map`, `Set`, and functions. Nobody expects you to handle everything. They expect you to know what you skipped.
+Deep clone copies an object and everything inside it. This question walks
+through JavaScript's object model: objects that contain themselves,
+prototypes, `Map`, `Set`, and functions. Nobody expects you to handle
+everything. They expect you to know what you skipped.
 
 ## 1. Why the JSON trick fails
 
-**json-trap.js**
+*json-trap.js*
 
 ```js
 const source = {
@@ -49,15 +52,16 @@ try {
 }
 ```
 
-**Watch out**
+> **Say this before you write any code**
 
-**Say this before you write any code**
-
-"The JSON trick is a conversion, not a copy. It loses types, drops `undefined` and functions, turns `NaN` into `null`, flattens `Map` and `Set` to `{}`, and throws on objects that contain themselves. For plain data that came from JSON it is fine, and fast."
+"The JSON trick is a conversion, not a copy. It loses types, drops `undefined`
+and functions, turns `NaN` into `null`, flattens `Map` and `Set` to `{}`, and
+throws on objects that contain themselves. For plain data that came from JSON
+it is fine, and fast."
 
 ## 2. The built-in answer: structuredClone
 
-**structured-clone.js**
+*structured-clone.js*
 
 ```js
 if (typeof structuredClone === "function") {
@@ -79,19 +83,25 @@ if (typeof structuredClone === "function") {
 }
 ```
 
-`structuredClone` exists in every current browser and in Node 17+. It handles self-references, `Date`, `Map`, `Set`, `RegExp` and typed arrays. It does **not** keep prototypes, getters, setters, or functions. A class instance comes back as a plain object.
+`structuredClone` exists in every current browser and in Node 17+. It handles
+self-references, `Date`, `Map`, `Set`, `RegExp` and typed arrays. It does
+**not** keep prototypes, getters, setters, or functions. A class instance
+comes back as a plain object.
 
-**Tip**
+> **Lead with this in an interview**
 
-**Lead with this in an interview**
-
-"In real code I'd use `structuredClone`. If the environment cannot support it, or I need to keep prototypes and class methods, here is the recursive version." Knowing the built-in exists is the signal. Reimplementing it without mentioning it looks like you learned from blog posts.
+"In real code I'd use `structuredClone`. If the environment cannot support it,
+or I need to keep prototypes and class methods, here is the recursive
+version." Knowing the built-in exists is the signal. Reimplementing it without
+mentioning it looks like you learned from blog posts.
 
 ## 3. Writing it yourself
 
-Three ideas carry the whole thing. Stop at simple values. Keep a `WeakMap` of objects you already copied, so self-references work. Handle each built-in type before falling back to a plain object.
+Three ideas carry the whole thing. Stop at simple values. Keep a `WeakMap` of
+objects you already copied, so self-references work. Handle each built-in type
+before falling back to a plain object.
 
-**deepClone.js**
+*deepClone.js*
 
 ```js
 function deepClone(value, seen = new WeakMap()) {
@@ -161,11 +171,12 @@ const u = deepClone(new User("ada"));
 console.log("class method still works:", u.greet());
 ```
 
-**Why this matters**
+> **Why save the copy before going deeper?**
 
-**Why save the copy before going deeper?**
-
-Because the copy must exist in the map before any child is copied. Otherwise an object that contains itself recurses forever. It also means two properties pointing at the same object still point at the same copy. This one line matters more than any single type branch.
+Because the copy must exist in the map before any child is copied. Otherwise
+an object that contains itself recurses forever. It also means two properties
+pointing at the same object still point at the same copy. This one line
+matters more than any single type branch.
 
 ## 4. What this still does not handle
 
@@ -180,7 +191,7 @@ Because the copy must exist in the map before any child is copied. Otherwise an 
 
 ### Keeping getters, if they ask
 
-**descriptors.js**
+*descriptors.js*
 
 ```js
 function cloneWithDescriptors(value, seen = new WeakMap()) {
@@ -208,7 +219,7 @@ console.log("hidden property kept:",
 
 ## 5. Shallow, deep, and the middle
 
-**levels.js**
+*levels.js*
 
 ```js
 const src = { a: 1, nested: { b: 2 }, list: [{ c: 3 }] };
@@ -226,13 +237,17 @@ const arrCopy = [...arr];
 console.log("array items shared:", arrCopy[0] === arr[0]);
 ```
 
-Shallow copies are usually the right choice in React. You replace the part that changed and keep the rest by reference. Deep copying state on every render is a performance bug, not a safety feature.
+Shallow copies are usually the right choice in React. You replace the part
+that changed and keep the rest by reference. Deep copying state on every
+render is a performance bug, not a safety feature.
 
 ## 6. Check yourself
 
-**Quiz:** What is the smallest change that makes a simple recursive clone handle self-references?
+**Quiz:** What is the smallest change that makes a simple recursive clone
+handle self-references?
 
 Options:
+
 - A. Add a depth limit
 - B. Keep a `WeakMap` of copies and check it before going deeper **← correct**
 - C. Wrap it in try/catch
@@ -241,11 +256,15 @@ A depth limit avoids the crash but silently cuts off data.
 
 **Check:** Why WeakMap and not Map for the seen list?
 
-The list is only needed while the copy runs. A `WeakMap` avoids holding strong references. A local `Map` would also be freed when the call returns, but `WeakMap` is the better habit and the expected answer.
+The list is only needed while the copy runs. A `WeakMap` avoids holding strong
+references. A local `Map` would also be freed when the call returns, but
+`WeakMap` is the better habit and the expected answer.
 
 **Check:** Does a deep clone keep "these two properties are the same object"?
 
-With the `seen` map, yes. If `a.x === a.y`, then `clone.x === clone.y`. Without it you get two separate copies, which breaks code that relies on them being the same.
+With the `seen` map, yes. If `a.x === a.y`, then `clone.x === clone.y`.
+Without it you get two separate copies, which breaks code that relies on them
+being the same.
 
 ---
 

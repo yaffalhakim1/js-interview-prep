@@ -26,6 +26,8 @@ Write-Host 'markdown edition'
 node (Join-Path $root 'tools\build-md.js')
 node (Join-Path $root 'tools\check-md.js')
 if ($LASTEXITCODE -ne 0) { throw 'markdown check failed' }
+node (Join-Path $root 'tools\check-tidy.js')
+if ($LASTEXITCODE -ne 0) { throw 'markdown tidy check failed' }
 
 function Render-Pdf {
     $profile = Join-Path $env:TEMP ('jspbuild-' + [guid]::NewGuid().ToString('N'))

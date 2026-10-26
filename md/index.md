@@ -3,10 +3,12 @@
 
 # JavaScript interviews, from the basics up
 
-A 19-part course. It covers the language ideas interviewers ask about, the small
+A 19-part course. It covers the language ideas interviewers ask about, the
+small
 helpers they ask you to write, and how to run a 35-minute interview well.
 
-Every topic has the idea first, runnable code, the edge cases worth mentioning, a
+Every topic has the idea first, runnable code, the edge cases worth
+mentioning, a
 script to say out loud, and questions to check yourself.
 
 There is also a single-file edition: [COURSE.md](../COURSE.md).

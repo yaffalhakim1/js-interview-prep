@@ -32,15 +32,21 @@ A 19-part course, in one file. Generated from the HTML pages in `html/`.
 
 # Closures
 
-A closure is a scope that stays alive after its function returns. That is the whole idea. It is not a new feature and not a new kind of function. It is the name for what happens when an inner function keeps its outer scope alive. You will see why that matters in the first example.
+A closure is a scope that stays alive after its function returns. That is the
+whole idea. It is not a new feature and not a new kind of function. It is the
+name for what happens when an inner function keeps its outer scope alive. You
+will see why that matters in the first example.
 
 ## 1. What a closure is
 
-When you create a function, it remembers the variables around it. Those variables stay alive as long as the function exists.
+When you create a function, it remembers the variables around it. Those
+variables stay alive as long as the function exists.
 
-That is the mechanism. Now the question that matters: why would anyone care about a variable staying alive? Because it lets a function keep state between calls without using a global variable.
+That is the mechanism. Now the question that matters: why would anyone care
+about a variable staying alive? Because it lets a function keep state between
+calls without using a global variable.
 
-**closure.js**
+*closure.js*
 
 ```js
 function outer() {
@@ -57,21 +63,23 @@ const fn = outer();          // outer has finished running
 console.log(fn());           // 1, and x is still alive
 ```
 
-`outer()` has returned. Normally its variables would be gone. But `inner` still points at `x`, so `x` stays in memory. That is the whole idea.
+`outer()` has returned. Normally its variables would be gone. But `inner`
+still points at `x`, so `x` stays in memory. That is the whole idea.
 
 ## 2. The only thing that makes it a closure
 
-If a closure feels like "just a scope", you are right. It is a scope. The difference is what happens to that scope when the function returns.
+If a closure feels like "just a scope", you are right. It is a scope. The
+difference is what happens to that scope when the function returns.
 
-**Why this matters**
+> **A closure is a scope that did not die**
 
-**A closure is a scope that did not die**
-
-Normally a scope is thrown away when its function returns. A closure is the case where the scope stays alive, because a function still points at it. Nothing new is created. Something old is kept.
+Normally a scope is thrown away when its function returns. A closure is the
+case where the scope stays alive, because a function still points at it.
+Nothing new is created. Something old is kept.
 
 Here are two functions. The only difference is what each one returns.
 
-**A: returns a number**
+*A: returns a number*
 
 ```js
 function plain() {
@@ -84,9 +92,10 @@ console.log(plain());   // 1  <- it forgot
 console.log(plain());   // 1  <- it forgot again
 ```
 
-Every call makes a fresh `count`. When the call ends, that scope is thrown away. The next call starts from zero again.
+Every call makes a fresh `count`. When the call ends, that scope is thrown
+away. The next call starts from zero again.
 
-**B: returns a function**
+*B: returns a function*
 
 ```js
 function makeCounter() {
@@ -100,7 +109,9 @@ console.log(c());       // 2  <- it remembered
 console.log(c());       // 3  <- it remembered again
 ```
 
-Same `let count = 0`. Same scope. The difference is that `makeCounter` returned the inner function, and that function still points at `count`. So the scope cannot be thrown away. **That survival is the closure.**
+Same `let count = 0`. Same scope. The difference is that `makeCounter`
+returned the inner function, and that function still points at `count`. So the
+scope cannot be thrown away. **That survival is the closure.**
 
 |  | A: returns a number | B: returns a function |
 | --- | --- | --- |
@@ -112,9 +123,10 @@ Same `let count = 0`. Same scope. The difference is that `makeCounter` returned 
 
 ### The proof: two functions sharing one scope
 
-If the scope were copied, two functions could not see each other's changes. They can. That only works if they share one scope that is still alive.
+If the scope were copied, two functions could not see each other's changes.
+They can. That only works if they share one scope that is still alive.
 
-**shared scope**
+*shared scope*
 
 ```js
 function makeCounter() {
@@ -139,19 +151,24 @@ console.log("first counter:", counter.peek());   // 2
 console.log("second counter:", other.peek());    // 1
 ```
 
-`next` and `peek` share one `count`, because both were made inside the same call. `other` has its own `count`, because it came from a different call. So a closure is not one function remembering things. It is a scope that several functions share, which stays alive as long as any of them exists.
+`next` and `peek` share one `count`, because both were made inside the same
+call. `other` has its own `count`, because it came from a different call. So a
+closure is not one function remembering things. It is a scope that several
+functions share, which stays alive as long as any of them exists.
 
-**Tip**
+> **Why you cannot see a closure**
 
-**Why you cannot see a closure**
-
-Inside a single function call, a closure looks exactly like a normal scope. Nothing is different yet. You only notice it when a second call remembers something from the first. That is why the idea feels slippery: the effect only appears after the function has already finished.
+Inside a single function call, a closure looks exactly like a normal scope.
+Nothing is different yet. You only notice it when a second call remembers
+something from the first. That is why the idea feels slippery: the effect only
+appears after the function has already finished.
 
 ## 3. Why it works: scope
 
-JavaScript looks up a variable name by **where the function was written**, not where it was called. This is called lexical scope.
+JavaScript looks up a variable name by **where the function was written**, not
+where it was called. This is called lexical scope.
 
-**scope chain**
+*scope chain*
 
 ```js
 function outer() {
@@ -167,13 +184,16 @@ function outer() {
 }
 ```
 
-When `inner` asks for `x`, the engine checks three places in order: `inner`, then `middle`, then `outer`. This chain of scopes is fixed when the code is written. Renaming things at the call site does not change it.
+When `inner` asks for `x`, the engine checks three places in order: `inner`,
+then `middle`, then `outer`. This chain of scopes is fixed when the code is
+written. Renaming things at the call site does not change it.
 
 ## 4. Use 1: private state
 
-A closure lets you keep data that outside code cannot touch. You only expose the functions you choose.
+A closure lets you keep data that outside code cannot touch. You only expose
+the functions you choose.
 
-**counter.js**
+*counter.js*
 
 ```js
 function createCounter(start = 0) {
@@ -194,13 +214,15 @@ console.log("value:", c.value);
 console.log("can I read count directly?", c.count);   // undefined
 ```
 
-`count` is not a property of the returned object. So nobody outside can read or change it. They must go through `increment` and `decrement`.
+`count` is not a property of the returned object. So nobody outside can read
+or change it. They must go through `increment` and `decrement`.
 
 ### Short example: run a function only once
 
-This is a common interview question. The answer is one variable that remembers whether we already ran.
+This is a common interview question. The answer is one variable that remembers
+whether we already ran.
 
-**once.js**
+*once.js*
 
 ```js
 function once(fn) {
@@ -227,9 +249,11 @@ The second and third calls return the saved value. They do not run `fn` again.
 
 ## 5. Closures remember the variable, not the value
 
-This part confuses many people. A closure does not copy the number. It keeps a link to the variable. If the variable changes later, the closure sees the new value.
+This part confuses many people. A closure does not copy the number. It keeps a
+link to the variable. If the variable changes later, the closure sees the new
+value.
 
-**same variable**
+*same variable*
 
 ```js
 function makeAdders() {
@@ -244,11 +268,13 @@ function makeAdders() {
 console.log(makeAdders().map(f => f()));   // [3, 3, 3]
 ```
 
-All three functions were created inside the same `var i` loop. So all three read the same `i`. By the time we call them, the loop has finished and `i` is 3. The output is `[3, 3, 3]`.
+All three functions were created inside the same `var i` loop. So all three
+read the same `i`. By the time we call them, the loop has finished and `i` is
+3. The output is `[3, 3, 3]`.
 
 ### Three ways to fix it
 
-**three fixes**
+*three fixes*
 
 ```js
 // 1. `let` creates a new variable on every loop run
@@ -269,19 +295,21 @@ for (var k = 0; k < 3; k++) c.push(makeGetter(k));
 console.log(a.map(f => f()), b.map(f => f()), c.map(f => f()));
 ```
 
-**Watch out**
+> **The same trap with setTimeout**
 
-**The same trap with setTimeout**
-
-`for (var i = 0; i < 3; i++) setTimeout(() => console.log(i))` prints `3 3 3`. The timers run after the loop has finished. Change `var` to `let` and you get `0 1 2`.
+`for (var i = 0; i < 3; i++) setTimeout(() => console.log(i))` prints `3 3 3`.
+The timers run after the loop has finished. Change `var` to `let` and you get
+`0 1 2`.
 
 Interviewers use this to test closures and timers at the same time.
 
 ## 6. Old values: the stale closure bug
 
-A closure sees the live variable. So if a callback is created once and the variable changes later, the callback may read an old value. This is a real bug you will meet in React.
+A closure sees the live variable. So if a callback is created once and the
+variable changes later, the callback may read an old value. This is a real bug
+you will meet in React.
 
-**stale.js**
+*stale.js*
 
 ```js
 function attach() {
@@ -295,13 +323,17 @@ function attach() {
 console.log("read after change:", attach()());   // 42, not 0
 ```
 
-In React the same thing happens with `setInterval`. The callback is created once, so it keeps printing the first `count` forever. The fix is a dependency array or a ref.
+In React the same thing happens with `setInterval`. The callback is created
+once, so it keeps printing the first `count` forever. The fix is a dependency
+array or a ref.
 
 ## 7. Memory: what keeps a closure alive
 
-A closure keeps its variables in memory while anything can still call it. Usually that is good. It becomes a leak when a long-lived listener holds something large.
+A closure keeps its variables in memory while anything can still call it.
+Usually that is good. It becomes a leak when a long-lived listener holds
+something large.
 
-**leak.js**
+*leak.js*
 
 ```js
 // Leak: this listener lives forever and holds `hugeModel`
@@ -315,11 +347,11 @@ function setup() {
 }
 ```
 
-**Tip**
+> **A good sentence to say**
 
-**A good sentence to say**
-
-"A closure keeps its variables alive. The leak is not the closure itself. It is a listener or timer that stays attached after we are done with it. Remove the listener and the memory is freed."
+"A closure keeps its variables alive. The leak is not the closure itself. It
+is a listener or timer that stays attached after we are done with it. Remove
+the listener and the memory is freed."
 
 ## 8. Where closures appear in questions
 
@@ -332,9 +364,11 @@ function setup() {
 | Event emitter | The list of listeners |
 | Private state | Variables the outside cannot see |
 
-**Say this in an interview**
+> **Say this in an interview**
 
-"A closure is a function that remembers the scope where it was created. In this debounce, the returned function remembers `timer` and `lastArgs`. So the state survives between calls, and the caller cannot see it."
+"A closure is a function that remembers the scope where it was created. In
+this debounce, the returned function remembers `timer` and `lastArgs`. So the
+state survives between calls, and the caller cannot see it."
 
 ## 9. Check yourself
 
@@ -349,19 +383,26 @@ function build() {
 console.log(build()[0](), build()[1]());
 ```
 
-`2 2`. Both functions read the same `var`, which ends at 2. Each `build()` call makes a new scope, but inside one call both functions share it.
+`2 2`. Both functions read the same `var`, which ends at 2. Each `build()`
+call makes a new scope, but inside one call both functions share it.
 
 **Check:** Why does once save the result?
 
-Because the first call may return something useful. If later calls returned `undefined`, callers would get different types at different times. Saving the value keeps the behaviour predictable.
+Because the first call may return something useful. If later calls returned
+`undefined`, callers would get different types at different times. Saving the
+value keeps the behaviour predictable.
 
 **Check:** Does a closure copy a variable or keep a link to it?
 
-It keeps a link. If you change the variable later, the closure sees the new value. To get a separate copy, create a new variable. That is what `let` does on each loop run.
+It keeps a link. If you change the variable later, the closure sees the new
+value. To get a separate copy, create a new variable. That is what `let` does
+on each loop run.
 
 **Check:** How would you explain a stale closure to a friend?
 
-"The callback was made earlier and never updated. So it keeps reading the value from when it was made. To fix it, make the callback again when the value changes, or read the value from something stable like a ref."
+"The callback was made earlier and never updated. So it keeps reading the
+value from when it was made. To fix it, make the callback again when the value
+changes, or read the value from something stable like a ref."
 
 ---
 
@@ -375,15 +416,18 @@ It keeps a link. If you change the variable later, the closure sees the new valu
 
 # The this keyword
 
-`this` answers one question: **which object is this function working on?** The function does not decide the answer. The code that *calls* it decides. Once that clicks, the four rules are just the four ways to call a function.
+`this` answers one question: **which object is this function working on?** The
+function does not decide the answer. The code that *calls* it decides. Once
+that clicks, the four rules are just the four ways to call a function.
 
 ## 1. What this actually is
 
-Start with a problem. You have a function that prints a greeting. You want it to work for many people, not just one.
+Start with a problem. You have a function that prints a greeting. You want it
+to work for many people, not just one.
 
 You could pass the person in as an argument:
 
-**without this**
+*without this*
 
 ```js
 function greet(person) {
@@ -397,9 +441,10 @@ console.log(greet(alice));   // Hello, Alice
 console.log(greet(bob));     // Hello, Bob
 ```
 
-That works. But now watch what happens when you put the function *on* the object instead:
+That works. But now watch what happens when you put the function *on* the
+object instead:
 
-**with this**
+*with this*
 
 ```js
 const alice = {
@@ -416,19 +461,20 @@ console.log(alice.greet());   // Hello, Alice
 console.log(bob.greet());     // Hello, Bob
 ```
 
-Same function body. Two different answers. Nothing was passed in. `this` was filled in by the call itself.
+Same function body. Two different answers. Nothing was passed in. `this` was
+filled in by the call itself.
 
-**Why this matters**
+> **The whole idea in one line**
 
-**The whole idea in one line**
-
-**`this` is the object written before the dot.** `alice.greet()` makes `this` equal `alice`. `bob.greet()` makes it `bob`. One function, reused, no argument needed.
+**`this` is the object written before the dot.** `alice.greet()` makes `this`
+equal `alice`. `bob.greet()` makes it `bob`. One function, reused, no argument
+needed.
 
 ### Why not just pass the object in?
 
 Because it lets many objects share one function. Look at the memory cost:
 
-**shared vs copied**
+*shared vs copied*
 
 ```js
 function greet() { return "Hello, " + this.name; }
@@ -441,17 +487,19 @@ console.log("same function?", alice.greet === bob.greet);   // true
 console.log("different results:", alice.greet(), "·", bob.greet());
 ```
 
-One function on the prototype, a thousand objects using it, and `this` tells it which object it is serving right now. That is the reason `this` exists.
+One function on the prototype, a thousand objects using it, and `this` tells
+it which object it is serving right now. That is the reason `this` exists.
 
-**Tip**
+> **Why this feels slippery**
 
-**Why this feels slippery**
-
-You cannot read `this` off the function. You have to look at the line that *calls* it. The function is the same in both objects above. Only the call site differs. That is why the rules below are about *calling*, not about writing.
+You cannot read `this` off the function. You have to look at the line that
+*calls* it. The function is the same in both objects above. Only the call site
+differs. That is why the rules below are about *calling*, not about writing.
 
 ## 2. The four ways to call a function
 
-Every call is one of four shapes. The shape decides `this`. Check them from top to bottom. The first one that matches wins.
+Every call is one of four shapes. The shape decides `this`. Check them from
+top to bottom. The first one that matches wins.
 
 | Order | Name | You wrote | So `this` is | Plain English |
 | --- | --- | --- | --- | --- |
@@ -460,7 +508,7 @@ Every call is one of four shapes. The shape decides `this`. Check them from top 
 | 3 | The dot | `alice.fn()` | `alice` | "Use the thing before the dot." |
 | 4 | Nothing | `fn()` | `undefined` | "No object given. There is nothing to use." |
 
-**rules.js**
+*rules.js*
 
 ```js
 "use strict";
@@ -486,15 +534,18 @@ const BoundPerson = Person.bind({ name: "ignored" });
 console.log("new wins:", new BoundPerson("grace").name);
 ```
 
-The last line surprises people. `new` wins over `bind`. `new` creates a fresh object and uses that as `this`, so the bound value is ignored for that call.
+The last line surprises people. `new` wins over `bind`. `new` creates a fresh
+object and uses that as `this`, so the bound value is ignored for that call.
 
 ## 3. The most common bug: losing this
 
-Rule 3 says `this` is the thing before the dot. So what happens when there is no dot? The object is gone.
+Rule 3 says `this` is the thing before the dot. So what happens when there is
+no dot? The object is gone.
 
-This bites in one very common situation: you take a method out of an object to use it somewhere else.
+This bites in one very common situation: you take a method out of an object to
+use it somewhere else.
 
-**lost-this.js**
+*lost-this.js*
 
 ```js
 "use strict";
@@ -519,21 +570,25 @@ const safe = user.greet.bind(user);
 console.log("after bind:", safe());
 ```
 
-`detached()` has no object before the dot. So `this` is `undefined`, and `this.name` throws. The function did not change. Only the call changed.
+`detached()` has no object before the dot. So `this` is `undefined`, and
+`this.name` throws. The function did not change. Only the call changed.
 
-**Watch out**
+> **This is why debounce uses function, not an arrow**
 
-**This is why debounce uses function, not an arrow**
-
-The wrapper inside `debounce` must pass the caller's `this` through. It does that with `fn.apply(this, args)`. If you write the wrapper as an arrow, it captures `this` from where debounce was created, and every method that uses it breaks.
+The wrapper inside `debounce` must pass the caller's `this` through. It does
+that with `fn.apply(this, args)`. If you write the wrapper as an arrow, it
+captures `this` from where debounce was created, and every method that uses it
+breaks.
 
 ## 4. Arrow functions ignore all of this
 
-An arrow function has no `this` of its own. It borrows the `this` from the code around it, permanently. It also ignores `call`, `apply` and `bind`.
+An arrow function has no `this` of its own. It borrows the `this` from the
+code around it, permanently. It also ignores `call`, `apply` and `bind`.
 
-That is either exactly what you want, or a bug. Here is the same timer written both ways:
+That is either exactly what you want, or a bug. Here is the same timer written
+both ways:
 
-**arrows.js**
+*arrows.js*
 
 ```js
 const timer = {
@@ -559,11 +614,13 @@ timer.broken();
 timer.works();
 ```
 
-So: use `function` when `this` must come from whoever calls it. Use an arrow when you want the `this` from the code around it. Inside a method, that almost always means an arrow.
+So: use `function` when `this` must come from whoever calls it. Use an arrow
+when you want the `this` from the code around it. Inside a method, that almost
+always means an arrow.
 
 ### Arrow functions also have no arguments
 
-**arguments.js**
+*arguments.js*
 
 ```js
 function classic() {
@@ -585,9 +642,11 @@ console.log("rest parameter:", modern(1, 2, 3));
 | `apply` | as an array | the result |
 | `bind` | one by one | a new function |
 
-Writing these yourself is a common follow-up. The trick is simple: put the function on the object for a moment, then call it from the object. Rule 3 then gives you the right `this`.
+Writing these yourself is a common follow-up. The trick is simple: put the
+function on the object for a moment, then call it from the object. Rule 3 then
+gives you the right `this`.
 
-**myCall / myApply / myBind**
+*myCall / myApply / myBind*
 
 ```js
 Function.prototype.myCall = function (ctx, ...args) {
@@ -626,9 +685,7 @@ console.log(describe.myApply(p, ["Lyon"]));
 console.log(describe.myBind(p)("Nice"));
 ```
 
-**Tip**
-
-**Four things to mention**
+> **Four things to mention**
 
 - Use a `Symbol` key so you do not overwrite a real property.
 - Clean up in `finally`, so a throwing function does not leave the object changed.
@@ -637,9 +694,10 @@ console.log(describe.myBind(p)("Nice"));
 
 ## 6. Classes and methods
 
-Methods on a class live on the prototype, so they use rule 3. That means they also lose `this` when detached.
+Methods on a class live on the prototype, so they use rule 3. That means they
+also lose `this` when detached.
 
-**class.js**
+*class.js*
 
 ```js
 class Button {
@@ -664,15 +722,18 @@ try {
 }
 ```
 
-The arrow property has a cost. It creates one function per instance instead of one shared function on the prototype. Worth mentioning if you are asked about performance.
+The arrow property has a cost. It creates one function per instance instead of
+one shared function on the prototype. Worth mentioning if you are asked about
+performance.
 
 ## 7. Two edge cases
 
 ### 1. this inside a map callback
 
-`map` and `forEach` take a second argument. That argument becomes the callback's `this`. Without it, `this` is `undefined`.
+`map` and `forEach` take a second argument. That argument becomes the
+callback's `this`. Without it, `this` is `undefined`.
 
-**thisArg.js**
+*thisArg.js*
 
 ```js
 "use strict";
@@ -691,21 +752,27 @@ try {
 
 ### 2. this at the top of a file
 
-In a module, top-level `this` is `undefined`. In an old script it is `window`. In Node it is `module.exports`. Same keyword, three answers. So "it depends" is the right first word in your answer.
+In a module, top-level `this` is `undefined`. In an old script it is `window`.
+In Node it is `module.exports`. Same keyword, three answers. So "it depends"
+is the right first word in your answer.
 
 ## 8. Putting it together
 
 Before you answer any `this` question, do three things in order.
 
-**1. Find the call** Not the function. Scroll to the line that actually runs it. That line holds the answer.
+**1. Find the call** Not the function. Scroll to the line that actually runs
+it. That line holds the answer.
 
-**2. Look just before the bracket** Is there a dot? Then `this` is what is before it. No dot? Nothing to use.
+**2. Look just before the bracket** Is there a dot? Then `this` is what is
+before it. No dot? Nothing to use.
 
-**3. Check for a trap** Is it an arrow? Then ignore steps 1 and 2, and look at where it was written instead.
+**3. Check for a trap** Is it an arrow? Then ignore steps 1 and 2, and look at
+where it was written instead.
 
-Work through four calls to the same function. All four give a different answer, and you can predict each one before running it.
+Work through four calls to the same function. All four give a different
+answer, and you can predict each one before running it.
 
-**predict, then run**
+*predict, then run*
 
 ```js
 "use strict";
@@ -728,17 +795,19 @@ const fresh = new alice.whoAmI();
 console.log("new alice.whoAmI()  →", fresh.name === undefined ? "the new object" : fresh.name);
 ```
 
-**Tip**
+> **The one-sentence version**
 
-**The one-sentence version**
-
-**`this` is the object before the dot at the call site.** Everything else in this page is a special case of that sentence. `new` puts a fresh object before the dot. `call` and `bind` let you write the object yourself. An arrow has no dot of its own, so it borrows the one from around it.
+**`this` is the object before the dot at the call site.** Everything else in
+this page is a special case of that sentence. `new` puts a fresh object before
+the dot. `call` and `bind` let you write the object yourself. An arrow has no
+dot of its own, so it borrows the one from around it.
 
 ## 9. Check yourself
 
 **Quiz:** What is this in obj.method.call(other)?
 
 Options:
+
 - A. `obj`
 - B. `other`, because explicit beats implicit **← correct**
 - C. `undefined`
@@ -747,15 +816,20 @@ Explicit beats implicit. Only `new` beats explicit.
 
 **Check:** Why does debounce need fn.apply(this, args)?
 
-Because the debounced function is often a method. Passing the caller's `this` and arguments through means the delayed call behaves exactly like the original method call.
+Because the debounced function is often a method. Passing the caller's `this`
+and arguments through means the delayed call behaves exactly like the original
+method call.
 
 **Check:** Can you set this on an arrow function?
 
-No. Arrow functions ignore `call`, `apply` and `bind` for `this`. `bind` still returns a new function with fixed arguments, which is why people think it worked.
+No. Arrow functions ignore `call`, `apply` and `bind` for `this`. `bind` still
+returns a new function with fixed arguments, which is why people think it
+worked.
 
 **Check:** What is this inside a getter?
 
-The object you read from. `obj.x` makes `this` equal `obj`. A static method is different: its `this` is the class itself.
+The object you read from. `obj.x` makes `this` equal `obj`. A static method is
+different: its `this` is the class itself.
 
 ---
 
@@ -769,13 +843,16 @@ The object you read from. `obj.x` makes `this` equal `obj`. A static method is d
 
 # Prototypes and classes
 
-Objects in JavaScript can point to another object. That link is called the prototype. When you read a property that is missing, JavaScript looks at the linked object. `class` is a shorter way to write the same thing.
+Objects in JavaScript can point to another object. That link is called the
+prototype. When you read a property that is missing, JavaScript looks at the
+linked object. `class` is a shorter way to write the same thing.
 
 ## 1. How lookup works
 
-Every object has a hidden link to another object, or to `null`. Reading a property follows that link until the property is found.
+Every object has a hidden link to another object, or to `null`. Reading a
+property follows that link until the property is found.
 
-**lookup.js**
+*lookup.js*
 
 ```js
 const animal = {
@@ -793,11 +870,15 @@ console.log("method call:", dog.speak());           // `this` is dog
 console.log("end of chain:", Object.getPrototypeOf(animal) === Object.prototype);
 ```
 
-Look at `dog.speak()`. The function is found on `animal`, but `this` is `dog`. Finding the method and setting `this` are two separate things. This confuses many people, so say it clearly.
+Look at `dog.speak()`. The function is found on `animal`, but `this` is `dog`.
+Finding the method and setting `this` are two separate things. This confuses
+many people, so say it clearly.
 
 ### Why put methods on the prototype?
 
-To save memory. A method on the prototype exists once. A method assigned inside the constructor exists once per object. With 10,000 rows in a table, that is 10,000 functions instead of one.
+To save memory. A method on the prototype exists once. A method assigned
+inside the constructor exists once per object. With 10,000 rows in a table,
+that is 10,000 functions instead of one.
 
 ## 2. What new does
 
@@ -808,7 +889,7 @@ Four steps, in this order:
 3. Call `Fn` with that object as `this`.
 4. If the function returns an object, use that. Otherwise use the new object.
 
-**myNew.js**
+*myNew.js*
 
 ```js
 function myNew(Fn, ...args) {
@@ -828,17 +909,17 @@ console.log(u.greet());
 console.log("is a User:", u instanceof User);
 ```
 
-**Why this matters**
+> **Step 4 is the one people forget**
 
-**Step 4 is the one people forget**
-
-If a constructor returns an object, that object wins and the new `this` is thrown away. Returning a number or string is ignored.
+If a constructor returns an object, that object wins and the new `this` is
+thrown away. Returning a number or string is ignored.
 
 ## 3. What class really is
 
-`class` is a shorter way to write the same code. Methods go on `prototype`. Static methods go on the class itself.
+`class` is a shorter way to write the same code. Methods go on `prototype`.
+Static methods go on the class itself.
 
-**same code, two ways**
+*same code, two ways*
 
 ```js
 // Old style
@@ -869,15 +950,15 @@ Differences that matter in an interview:
 | Strict mode | Only if you ask | Always on |
 | Inheritance | You wire it up yourself | `extends` and `super` |
 
-**Watch out**
+> **"Classes are not hoisted" is wrong**
 
-**"Classes are not hoisted" is wrong**
-
-They are hoisted. But the name cannot be used until the class line runs. You get `ReferenceError: Cannot access 'X' before initialization`. That is a different error from `X is not defined`.
+They are hoisted. But the name cannot be used until the class line runs. You
+get `ReferenceError: Cannot access 'X' before initialization`. That is a
+different error from `X is not defined`.
 
 ## 4. Inheritance with extends
 
-**extends.js**
+*extends.js*
 
 ```js
 class Shape {
@@ -901,11 +982,13 @@ console.log("is a Circle:", c instanceof Circle, "· is a Shape:", c instanceof 
 console.log("chain is linked:", Object.getPrototypeOf(Circle.prototype) === Shape.prototype);
 ```
 
-Two things to remember. `super()` must run before you use `this`, because the object does not exist until the parent constructor runs. And `instanceof` walks the chain, so a `Circle` is also a `Shape`.
+Two things to remember. `super()` must run before you use `this`, because the
+object does not exist until the parent constructor runs. And `instanceof`
+walks the chain, so a `Circle` is also a `Shape`.
 
 ## 5. Write instanceof yourself
 
-**myInstanceOf.js**
+*myInstanceOf.js*
 
 ```js
 function myInstanceOf(obj, Ctor) {
@@ -939,23 +1022,31 @@ console.log("an object is not an Array:", myInstanceOf({}, Array));
 - **Mixing up `__proto__` and `prototype`.** `__proto__` is the link on an object. `prototype` is a property on a function that sets that link.
 - **Using `Object.create(null)` by accident.** You get an object with no methods at all, not even `hasOwnProperty`.
 
-**Say this in an interview**
+> **Say this in an interview**
 
-"Reading a property walks up the prototype chain. Writing always sets the value on the object itself. `new` makes an object, links it to `Fn.prototype`, calls the function with that object as `this`, and uses any returned object. `class` does the same thing with stricter rules."
+"Reading a property walks up the prototype chain. Writing always sets the
+value on the object itself. `new` makes an object, links it to `Fn.prototype`,
+calls the function with that object as `this`, and uses any returned object.
+`class` does the same thing with stricter rules."
 
 ## 7. Check yourself
 
 **Check:** Why does dog.speak() say "Rex" when speak lives on animal?
 
-The method is found on `animal`, but `this` comes from the call site. `dog.speak()` sets `this` to `dog`. Finding the code and setting the receiver are separate steps.
+The method is found on `animal`, but `this` comes from the call site.
+`dog.speak()` sets `this` to `dog`. Finding the code and setting the receiver
+are separate steps.
 
 **Check:** What happens if you call a class without new?
 
-`TypeError: Class constructor A cannot be invoked without 'new'`. An old function constructor would have run instead.
+`TypeError: Class constructor A cannot be invoked without 'new'`. An old
+function constructor would have run instead.
 
 **Check:** When would you use Object.create(null)?
 
-For a lookup table keyed by user input. A normal object already has keys like `toString`, so `obj["toString"]` gives a wrong answer. A null-prototype object has no inherited keys. Today a `Map` is usually a better choice.
+For a lookup table keyed by user input. A normal object already has keys like
+`toString`, so `obj["toString"]` gives a wrong answer. A null-prototype object
+has no inherited keys. Today a `Map` is usually a better choice.
 
 ---
 
@@ -969,11 +1060,16 @@ For a lookup table keyed by user input. A normal object already has keys like `t
 
 # Types and conversion
 
-JavaScript has seven simple types and one object type. But `typeof` gives a wrong answer for two of them. And `==` converts values before comparing. Both cause confident wrong answers in interviews, so this page gives you the exact rules.
+JavaScript has seven simple types and one object type. But `typeof` gives a
+wrong answer for two of them. And `==` converts values before comparing. Both
+cause confident wrong answers in interviews, so this page gives you the exact
+rules.
 
 ## 1. The types
 
-Seven simple types: `string`, `number`, `boolean`, `null`, `undefined`, `symbol`, `bigint`. Everything else is an object. That includes arrays, functions, dates and maps.
+Seven simple types: `string`, `number`, `boolean`, `null`, `undefined`,
+`symbol`, `bigint`. Everything else is an object. That includes arrays,
+functions, dates and maps.
 
 | Value | `typeof` gives | Best way to check |
 | --- | --- | --- |
@@ -990,11 +1086,13 @@ Seven simple types: `string`, `number`, `boolean`, `null`, `undefined`, `symbol`
 | `function(){}` | `"function"` | `typeof` |
 | `new Date()` | `"object"` | `x instanceof Date` |
 
-`typeof null === "object"` is a bug from 1995. It was kept because too much old code depends on it. Say that and you show you know it is not a design choice.
+`typeof null === "object"` is a bug from 1995. It was kept because too much
+old code depends on it. Say that and you show you know it is not a design
+choice.
 
 ### A check that works for almost everything
 
-**tag.js**
+*tag.js*
 
 ```js
 function tag(v) {
@@ -1006,17 +1104,18 @@ console.log(tag(new Map()), tag(new Set()), tag(/x/), tag(new Date()));
 console.log(tag(Promise.resolve()), tag(function () {}));
 ```
 
-**Watch out**
+> **Checking for an array**
 
-**Checking for an array**
-
-`typeof []` is `"object"`. And `[] instanceof Array` fails across iframes. That is exactly why `Array.isArray` exists.
+`typeof []` is `"object"`. And `[] instanceof Array` fails across iframes.
+That is exactly why `Array.isArray` exists.
 
 ## 2. Simple values act like objects
 
-`"abc".length` works even though a string is not an object. JavaScript wraps it in a `String` object for a moment, reads the property, then throws the wrapper away.
+`"abc".length` works even though a string is not an object. JavaScript wraps
+it in a `String` object for a moment, reads the property, then throws the
+wrapper away.
 
-**boxing.js**
+*boxing.js*
 
 ```js
 // Reading works: the engine wraps the string for a moment
@@ -1040,11 +1139,13 @@ console.log("types differ:", typeof s, "vs", typeof o);
 console.log("loose equal:", s == o, "· strict equal:", s === o);
 ```
 
-This is also why `new Boolean(false)` is a trap. It is an object, and every object counts as true. So `if (new Boolean(false))` runs the branch.
+This is also why `new Boolean(false)` is a trap. It is an object, and every
+object counts as true. So `if (new Boolean(false))` runs the branch.
 
 ## 3. == vs ===
 
-`===` checks the type first. Different types means `false` straight away. `==` converts the values to the same type first. The rules are fixed, not random.
+`===` checks the type first. Different types means `false` straight away. `==`
+converts the values to the same type first. The rules are fixed, not random.
 
 | Comparison | What happens | Result |
 | --- | --- | --- |
@@ -1057,7 +1158,7 @@ This is also why `new Boolean(false)` is a trap. It is an object, and every obje
 | `NaN == NaN` | NaN never equals anything | `false` |
 | `{} == {}` | two different objects | `false` |
 
-**try it**
+*try it*
 
 ```js
 const pairs = [
@@ -1073,17 +1174,17 @@ for (const [a, b] of pairs) {
 }
 ```
 
-**Tip**
+> **The one exception people allow**
 
-**The one exception people allow**
-
-`x == null` is a common way to say "null or undefined". That is accepted. For everything else, use `===`. If the types differ, fix the types instead of comparing them.
+`x == null` is a common way to say "null or undefined". That is accepted. For
+everything else, use `===`. If the types differ, fix the types instead of
+comparing them.
 
 ## 4. Which values count as false
 
 There are exactly eight. Everything else counts as true.
 
-**falsy.js**
+*falsy.js*
 
 ```js
 const falsy = [false, 0, -0, 0n, "", null, undefined, NaN];
@@ -1098,13 +1199,14 @@ console.log('" " is true:', Boolean(" "));
 console.log("new Boolean(false) is true:", Boolean(new Boolean(false)));
 ```
 
-A common bug: `if (value)` where `0` and `""` are valid input. Use `value !== undefined && value !== null` when 0 and empty string are allowed.
+A common bug: `if (value)` where `0` and `""` are valid input. Use `value !==
+undefined && value !== null` when 0 and empty string are allowed.
 
 ## 5. Operators that convert values
 
 ### + prefers strings
 
-**plus.js**
+*plus.js*
 
 ```js
 console.log(1 + 2);        // 3
@@ -1117,11 +1219,12 @@ console.log([1] + [2]);    // "12"
 
 ### The others prefer numbers
 
-`-`, `*`, `/` and `%` turn both sides into numbers. So `"6" / "2"` is `3`. That is why `+` is the dangerous one.
+`-`, `*`, `/` and `%` turn both sides into numbers. So `"6" / "2"` is `3`.
+That is why `+` is the dangerous one.
 
 ### NaN spreads through maths
 
-**nan.js**
+*nan.js*
 
 ```js
 console.log(Number("abc"));          // NaN
@@ -1146,7 +1249,8 @@ console.log("includes finds NaN:", [NaN].includes(NaN));  // true
 
 **Check:** Why is [] == false true?
 
-`false` becomes `0`. The array becomes `""` through `toString()`, and `""` becomes `0`. So it is `0 == 0`.
+`false` becomes `0`. The array becomes `""` through `toString()`, and `""`
+becomes `0`. So it is `0 == 0`.
 
 **Check:** Write a function that checks for a plain object.
 
@@ -1158,11 +1262,13 @@ function isPlainObject(v) {
 }
 ```
 
-Checking the prototype is better than checking the tag. It rejects arrays, maps, and class instances on purpose.
+Checking the prototype is better than checking the tag. It rejects arrays,
+maps, and class instances on purpose.
 
 **Check:** When should you use Object.is instead of ===?
 
-Two cases only: to detect `NaN`, and to tell `+0` from `-0`. Otherwise it behaves the same.
+Two cases only: to detect `NaN`, and to tell `+0` from `-0`. Otherwise it
+behaves the same.
 
 ---
 
@@ -1176,13 +1282,18 @@ Two cases only: to detect `NaN`, and to tell `+0` from `-0`. Otherwise it behave
 
 # Promises and async/await
 
-A promise is a placeholder for a value that is not ready yet. Using one is easy. The interview questions are about three details: each `then` returns a new promise, errors travel down the chain, and `async` is just a shorter way to write `then`.
+A promise is a placeholder for a value that is not ready yet. Using one is
+easy. The interview questions are about three details: each `then` returns a
+new promise, errors travel down the chain, and `async` is just a shorter way
+to write `then`.
 
 ## 1. Three states, and only one change
 
-A promise starts as **pending**. Then it becomes either **fulfilled** with a value, or **rejected** with a reason. Once it changes, it never changes again. Calling `resolve` twice does nothing the second time.
+A promise starts as **pending**. Then it becomes either **fulfilled** with a
+value, or **rejected** with a reason. Once it changes, it never changes again.
+Calling `resolve` twice does nothing the second time.
 
-**settles once**
+*settles once*
 
 ```js
 const p = new Promise((resolve, reject) => {
@@ -1197,13 +1308,17 @@ p.then(v => console.log("value:", v));
 console.log("this line runs after the executor");
 ```
 
-The function you pass to `new Promise` runs straight away. But the callback you pass to `.then` waits. It goes into a queue and runs after the current code finishes. That is why promise questions are really queue questions.
+The function you pass to `new Promise` runs straight away. But the callback
+you pass to `.then` waits. It goes into a queue and runs after the current
+code finishes. That is why promise questions are really queue questions.
 
 ## 2. Each then makes a new promise
 
-`then` does not change the original promise. It returns a new one, filled with whatever your callback returns. That is how chains work. It is also where most real bugs come from.
+`then` does not change the original promise. It returns a new one, filled with
+whatever your callback returns. That is how chains work. It is also where most
+real bugs come from.
 
-**chaining.js**
+*chaining.js*
 
 ```js
 Promise.resolve(1)
@@ -1219,17 +1334,19 @@ Promise.resolve(1)
   .finally(() => console.log("finally always runs"));
 ```
 
-**Watch out**
+> **Forgetting return**
 
-**Forgetting return**
-
-`.then(() => fetchUser())` waits for the fetch. `.then(() => { fetchUser(); })` does not. The chain continues with `undefined` while the fetch is still running. Mention this before the interviewer asks.
+`.then(() => fetchUser())` waits for the fetch. `.then(() => { fetchUser();
+})` does not. The chain continues with `undefined` while the fetch is still
+running. Mention this before the interviewer asks.
 
 ## 3. How errors travel
 
-A rejection skips every `then` until it reaches a `catch`. Throwing inside a `then` also rejects the new promise. So `throw` and `return Promise.reject()` have the same effect one step down the chain.
+A rejection skips every `then` until it reaches a `catch`. Throwing inside a
+`then` also rejects the new promise. So `throw` and `return Promise.reject()`
+have the same effect one step down the chain.
 
-**errors.js**
+*errors.js*
 
 ```js
 function step(n) {
@@ -1259,9 +1376,11 @@ step(1)
 
 ## 4. async and await
 
-An `async` function always returns a promise. A `throw` inside it becomes a rejection. `await` pauses the function until the promise finishes, then gives you the value.
+An `async` function always returns a promise. A `throw` inside it becomes a
+rejection. `await` pauses the function until the promise finishes, then gives
+you the value.
 
-**same code, two ways**
+*same code, two ways*
 
 ```js
 // with then
@@ -1277,7 +1396,7 @@ async function load() {
 }
 ```
 
-**errors.js**
+*errors.js*
 
 ```js
 async function fails() {
@@ -1300,17 +1419,20 @@ async function handled() {
 handled().then(v => console.log("returned:", v));
 ```
 
-**Watch out**
+> **await inside a loop runs one at a time**
 
-**await inside a loop runs one at a time**
-
-`for (const id of ids) await load(id)` waits for each one before starting the next. Sometimes that is what you want. Sometimes it makes the code 10 times slower. The parallel version is `await Promise.all(ids.map(load))`. Say which you chose and why. That is the point of the question.
+`for (const id of ids) await load(id)` waits for each one before starting the
+next. Sometimes that is what you want. Sometimes it makes the code 10 times
+slower. The parallel version is `await Promise.all(ids.map(load))`. Say which
+you chose and why. That is the point of the question.
 
 ## 5. When the callbacks actually run
 
-Each `then` callback and each `await` waits in a queue. That queue runs after the current code, but before the next timer. The next page covers this fully. Here is the shape you need now:
+Each `then` callback and each `await` waits in a queue. That queue runs after
+the current code, but before the next timer. The next page covers this fully.
+Here is the shape you need now:
 
-**order.js**
+*order.js*
 
 ```js
 console.log("A");
@@ -1328,13 +1450,14 @@ console.log("F");
 
 **Check:** Show the order
 
-`A, D, F, C, E, B`. Normal code runs first: A, D, F. Then the promise callbacks in order: C, then E. The timer runs last.
+`A, D, F, C, E, B`. Normal code runs first: A, D, F. Then the promise
+callbacks in order: C, then E. The timer runs last.
 
 ## 6. Four traps
 
 ### 1. An async function does not throw straight away
 
-**sync-try.js**
+*sync-try.js*
 
 ```js
 async function bad() { throw new Error("nope"); }
@@ -1352,7 +1475,7 @@ bad().catch((e) => console.log("handled separately:", e.message));
 
 ### 2. An async callback inside forEach is not awaited
 
-**foreach.js**
+*foreach.js*
 
 ```js
 // Wrong: forEach does not wait, so this finishes immediately
@@ -1366,11 +1489,13 @@ await Promise.all(items.map((item) => save(item)));
 
 ### 3. An unhandled rejection is a real error
 
-In Node it can stop the program. In the browser it appears in the console. Either way, every promise needs a `catch`, or must be returned to a caller who will handle it.
+In Node it can stop the program. In the browser it appears in the console.
+Either way, every promise needs a `catch`, or must be returned to a caller who
+will handle it.
 
 ### 4. Promise.resolve accepts anything
 
-**normalise.js**
+*normalise.js*
 
 ```js
 // You can call .then on a plain value
@@ -1390,7 +1515,9 @@ console.log("same promise:", Promise.resolve(p) === p);
 
 **Check:** After .catch(), does the next .then() run?
 
-Yes, unless the catch itself throws. A catch handler that returns a value produces a fulfilled promise, so the chain continues. That is how you recover from an error and carry on.
+Yes, unless the catch itself throws. A catch handler that returns a value
+produces a fulfilled promise, so the chain continues. That is how you recover
+from an error and carry on.
 
 **Check:** What does this print?
 
@@ -1400,11 +1527,14 @@ p.then(v => console.log("a", v));
 p.then(v => console.log("b", v));
 ```
 
-`a 1` then `b 1`. Callbacks run in the order you added them, and each one gets the same value. A promise can have many listeners.
+`a 1` then `b 1`. Callbacks run in the order you added them, and each one gets
+the same value. A promise can have many listeners.
 
 **Check:** Why can you not cancel a promise?
 
-The language has no cancellation for promises. The work carries on. You can only stop listening to the result. In real code you use `AbortController` to stop the work itself, or check a flag before acting on the result.
+The language has no cancellation for promises. The work carries on. You can
+only stop listening to the result. In real code you use `AbortController` to
+stop the work itself, or check a flag before acting on the result.
 
 ---
 
@@ -1418,23 +1548,26 @@ The language has no cancellation for promises. The work carries on. You can only
 
 # The event loop
 
-JavaScript runs one function at a time. Everything else waits in a queue for its turn. Almost every "what is the output order" question can be answered with one rule, applied carefully.
+JavaScript runs one function at a time. Everything else waits in a queue for
+its turn. Almost every "what is the output order" question can be answered
+with one rule, applied carefully.
 
 ## 1. The four pieces
 
-**Call stack** Where normal code runs. One function at a time. When it is empty, JavaScript is free.
+**Call stack** Where normal code runs. One function at a time. When it is
+empty, JavaScript is free.
 
-**The browser (or Node)** Timers, network requests and click events wait here, outside JavaScript. When they finish, they put a callback in a queue.
+**The browser (or Node)** Timers, network requests and click events wait here,
+outside JavaScript. When they finish, they put a callback in a queue.
 
 **Task queue** `setTimeout`, `setInterval`, network callbacks, click events.
 
-**Microtask queue** Promise callbacks and `queueMicrotask`. This queue always goes first.
+**Microtask queue** Promise callbacks and `queueMicrotask`. This queue always
+goes first.
 
 ## 2. The rule
 
-**Why this matters**
-
-**Learn these three lines**
+> **Learn these three lines**
 
 1. Run all the normal code until the stack is empty.
 2. Then run **every** microtask, including any new ones they add.
@@ -1442,7 +1575,7 @@ JavaScript runs one function at a time. Everything else waits in a queue for its
 
 Drawing happens between tasks, not in the middle of one.
 
-**the classic question**
+*the classic question*
 
 ```js
 console.log("1");
@@ -1458,13 +1591,15 @@ console.log("5");
 
 **Check:** Work it out
 
-Normal code first: `1`, `5`. Then microtasks in the order they were added: `3`, `4`. Then the timer: `2`. So the answer is **1 5 3 4 2**.
+Normal code first: `1`, `5`. Then microtasks in the order they were added:
+`3`, `4`. Then the timer: `2`. So the answer is **1 5 3 4 2**.
 
 ## 3. Microtasks can add more microtasks
 
-The microtask queue is emptied completely. So a microtask that adds another microtask runs before any timer, even if the timer was set first.
+The microtask queue is emptied completely. So a microtask that adds another
+microtask runs before any timer, even if the timer was set first.
 
-**nested.js**
+*nested.js*
 
 ```js
 setTimeout(() => console.log("timer 1"), 0);
@@ -1483,13 +1618,17 @@ setTimeout(() => console.log("timer 2"), 0);
 
 `micro 1, micro 3, micro 2 (added inside), timer 1, timer 2`
 
-Why `micro 3` comes before `micro 2`: when the queue starts, both the first `then` and the chained `then` are already in it. The nested one is added at the end, so it waits. The timers only start when the queue is empty.
+Why `micro 3` comes before `micro 2`: when the queue starts, both the first
+`then` and the chained `then` are already in it. The nested one is added at
+the end, so it waits. The timers only start when the queue is empty.
 
 ## 4. How await fits in
 
-`await v` works like `Promise.resolve(v).then(rest)`. Everything after the `await` becomes a microtask. That one sentence explains every ordering question with async functions.
+`await v` works like `Promise.resolve(v).then(rest)`. Everything after the
+`await` becomes a microtask. That one sentence explains every ordering
+question with async functions.
 
-**async-order.js**
+*async-order.js*
 
 ```js
 async function one() {
@@ -1513,13 +1652,16 @@ console.log("sync end");
 
 **Check:** Show the order
 
-`sync start, one: start, two: start, sync end, one: after await, two: after await, plain then`
+`sync start, one: start, two: start, sync end, one: after await, two: after
+await, plain then`
 
-Each async function runs normally until its first `await`, then adds the rest to the microtask queue. The plain `then` was added after both of them, so it runs last.
+Each async function runs normally until its first `await`, then adds the rest
+to the microtask queue. The plain `then` was added after both of them, so it
+runs last.
 
 ## 5. Timers are not exact
 
-**delay.js**
+*delay.js*
 
 ```js
 const start = Date.now();
@@ -1535,21 +1677,25 @@ while (Date.now() < end) { /* busy for 120ms */ }
 console.log("blocking work finished");
 ```
 
-`setTimeout(fn, 0)` means "run this soon", not "run this now". It does not guarantee 0 milliseconds. If you need to measure work, use `performance.now()`, not timers.
+`setTimeout(fn, 0)` means "run this soon", not "run this now". It does not
+guarantee 0 milliseconds. If you need to measure work, use
+`performance.now()`, not timers.
 
 ## 6. Where drawing fits in
 
-The browser can only draw when JavaScript is not running. Within one frame: `requestAnimationFrame` callbacks run, then styles and layout, then the screen updates.
+The browser can only draw when JavaScript is not running. Within one frame:
+`requestAnimationFrame` callbacks run, then styles and layout, then the screen
+updates.
 
 - **Visual changes** go in `requestAnimationFrame`.
 - **Low-priority work** goes in `setTimeout(0)`, or better, `requestIdleCallback`.
 - **Work that must happen before drawing** goes in a microtask.
 
-**Watch out**
+> **A microtask loop freezes the page**
 
-**A microtask loop freezes the page**
-
-If a microtask keeps adding another microtask, the queue never empties. The browser never gets to draw or run timers. The tab freezes. That is why "wait a moment" code uses `setTimeout` and not a promise loop.
+If a microtask keeps adding another microtask, the queue never empties. The
+browser never gets to draw or run timers. The tab freezes. That is why "wait a
+moment" code uses `setTimeout` and not a promise loop.
 
 ## 7. How to work out any order question
 
@@ -1559,7 +1705,7 @@ If a microtask keeps adding another microtask, the queue never empties. The brow
 4. Then take one task. After it, empty the microtasks again. Repeat.
 5. `await` means "the rest is a microtask". `setTimeout` is a task.
 
-**mixed.js, try it before you look**
+*mixed.js, try it before you look*
 
 ```js
 async function main() {
@@ -1582,32 +1728,43 @@ console.log("script end");
 
 **Check:** Show the full order
 
-`script start, main start, inside the executor, script end, main continued, then A, timeout`
+`script start, main start, inside the executor, script end, main continued,
+then A, timeout`
 
-`main start` and the executor both run immediately. Two microtasks were added: `main`'s continuation first (the `await` happened before the `.then`), then `then A`.
+`main start` and the executor both run immediately. Two microtasks were added:
+`main`'s continuation first (the `await` happened before the `.then`), then
+`then A`.
 
 ## 8. Node works the same way
 
-Node has the same two queues with the same priority. It just groups the task queue into stages. `process.nextTick` has its own queue that runs before promise callbacks. You do not need the stage details for a front-end interview. "nextTick runs before promises, and both run before timers" is enough.
+Node has the same two queues with the same priority. It just groups the task
+queue into stages. `process.nextTick` has its own queue that runs before
+promise callbacks. You do not need the stage details for a front-end
+interview. "nextTick runs before promises, and both run before timers" is
+enough.
 
 ## 9. Check yourself
 
 **Quiz:** Which runs first: a setTimeout(…, 0) set before a promise's .then?
 
 Options:
+
 - A. The `.then`, because microtasks always go first **← correct**
 - B. The timer, because it was set first
 - C. It is random
 
-The queue matters more than the order you wrote them. Order only matters inside the same queue.
+The queue matters more than the order you wrote them. Order only matters
+inside the same queue.
 
 **Check:** Why does a 5-second loop freeze the whole page?
 
-The stack never becomes empty. So the event loop never reaches the point where it can run callbacks, animation frames or drawing. The page stops responding.
+The stack never becomes empty. So the event loop never reaches the point where
+it can run callbacks, animation frames or drawing. The page stops responding.
 
 **Check:** Does setTimeout(fn, 0) always run before a click handler?
 
-No. Both are tasks. Whichever was queued first runs first, and that depends on real timing. Never build logic on that assumption.
+No. Both are tasks. Whichever was queued first runs first, and that depends on
+real timing. Never build logic on that assumption.
 
 ---
 
@@ -1621,17 +1778,24 @@ No. Both are tasks. Whichever was queued first runs first, and that depends on r
 
 # Array methods you write yourself
 
-Writing `map` from scratch looks easy. Interviewers score it on the small details: the three arguments the callback gets, the optional `thisArg`, empty slots in arrays, and whether you change the original. Get those right and you show that you read the rules, not just examples.
+Writing `map` from scratch looks easy. Interviewers score it on the small
+details: the three arguments the callback gets, the optional `thisArg`, empty
+slots in arrays, and whether you change the original. Get those right and you
+show that you read the rules, not just examples.
 
 ## 1. Why interviewers still ask this
 
-In the past, browsers did not all support these methods. So developers wrote their own copies. That is called a polyfill. Today the question tests three things: do you understand functions that take other functions, do you know the exact contract, and can you handle the edge cases.
+In the past, browsers did not all support these methods. So developers wrote
+their own copies. That is called a polyfill. Today the question tests three
+things: do you understand functions that take other functions, do you know the
+exact contract, and can you handle the edge cases.
 
 ## 2. map
 
-`map` makes a new array. Each item is replaced by whatever the callback returns. The new array has the same length.
+`map` makes a new array. Each item is replaced by whatever the callback
+returns. The new array has the same length.
 
-**myMap.js**
+*myMap.js*
 
 ```js
 Array.prototype.myMap = function (callback, thisArg) {
@@ -1662,22 +1826,24 @@ console.log("result:", sparse.myMap((v) => v * 2));
 console.log("slot 1 still empty:", !(1 in sparse.myMap((v) => v * 2)));
 ```
 
-**Why this matters**
-
-**Four details to mention**
+> **Four details to mention**
 
 - The callback gets three arguments: the item, the index, and the whole array. `thisArg` is separate, not a fourth argument.
 - Inside the callback, `this` is `thisArg`. In strict mode it is `undefined` when you do not pass one.
 - The length is read once, before the loop. Items added during the loop are not visited.
 - Empty slots are skipped, and stay empty in the result.
 
-The full rule about changes during the loop: items added later are never visited. Items changed before being visited give their new value. Items deleted before being visited are skipped. You rarely implement this, but saying it out loud shows depth.
+The full rule about changes during the loop: items added later are never
+visited. Items changed before being visited give their new value. Items
+deleted before being visited are skipped. You rarely implement this, but
+saying it out loud shows depth.
 
 ## 3. filter
 
-`filter` makes a new array with only the items where the callback returned true.
+`filter` makes a new array with only the items where the callback returned
+true.
 
-**myFilter.js**
+*myFilter.js*
 
 ```js
 Array.prototype.myFilter = function (callback, thisArg) {
@@ -1696,13 +1862,17 @@ console.log([1, 2, 3, 4].myFilter((n) => n % 2 === 0));
 console.log(["a", "bb", "ccc"].myFilter((s) => s.length > 1));
 ```
 
-`filter` never changes the original array. A common follow-up question: what does `filter(Boolean)` do? It removes every value that counts as false, including `0` and `""`. That is often a bug.
+`filter` never changes the original array. A common follow-up question: what
+does `filter(Boolean)` do? It removes every value that counts as false,
+including `0` and `""`. That is often a bug.
 
 ## 4. reduce
 
-The argument order catches people out. The callback is `(accumulator, current, index, array)`. The accumulator comes first. And there are two cases: with a starting value, and without one.
+The argument order catches people out. The callback is `(accumulator, current,
+index, array)`. The accumulator comes first. And there are two cases: with a
+starting value, and without one.
 
-**myReduce.js**
+*myReduce.js*
 
 ```js
 Array.prototype.myReduce = function (callback, initialValue) {
@@ -1746,15 +1916,16 @@ console.log(words.myReduce((acc, w) => {
 }, {}));
 ```
 
-**Watch out**
+> **The empty array trap**
 
-**The empty array trap**
-
-`[].reduce(fn)` throws a `TypeError`. But `[].reduce(fn, 0)` returns `0`. So always pass a starting value. Note the check uses `arguments.length`, not `initialValue === undefined`. Passing `undefined` on purpose still counts as passing a value.
+`[].reduce(fn)` throws a `TypeError`. But `[].reduce(fn, 0)` returns `0`. So
+always pass a starting value. Note the check uses `arguments.length`, not
+`initialValue === undefined`. Passing `undefined` on purpose still counts as
+passing a value.
 
 ## 5. forEach and find, for comparison
 
-**forEach / find**
+*forEach / find*
 
 ```js
 Array.prototype.myForEach = function (callback, thisArg) {
@@ -1779,11 +1950,13 @@ console.log("found:", [5, 8, 12].myFind((n) => n > 6));
 console.log("not found:", [1].myFind((n) => n > 6));
 ```
 
-`forEach` returns nothing and you cannot break out of it early. It is not a loop. If you need to stop early, use `some`, `every`, `find`, or a normal `for` loop.
+`forEach` returns nothing and you cannot break out of it early. It is not a
+loop. If you need to stop early, use `some`, `every`, `find`, or a normal
+`for` loop.
 
 ## 6. Chaining has a cost
 
-**cost.js**
+*cost.js*
 
 ```js
 const rows = Array.from({ length: 1_000_000 }, (_, i) => i);
@@ -1803,7 +1976,10 @@ console.log("same answer:", a === b);
 console.log("chained version took:", chainedMs.toFixed(1), "ms");
 ```
 
-Each method takes O(n) time. Chaining three of them is still O(n), but it makes three temporary arrays. That is fine for normal page data and wasteful for millions of rows. Saying that shows you have used these methods on real data.
+Each method takes O(n) time. Chaining three of them is still O(n), but it
+makes three temporary arrays. That is fine for normal page data and wasteful
+for millions of rows. Saying that shows you have used these methods on real
+data.
 
 ## 7. Mistakes to avoid
 
@@ -1814,23 +1990,32 @@ Each method takes O(n) time. Chaining three of them is still O(n), but it makes 
 - **Changing the array inside the callback.** Just mention it rather than handling it.
 - **Thinking `map` fills empty slots.** It does not.
 
-**Say this in an interview**
+> **Say this in an interview**
 
-"I'll write map to the spec. Check the callback is a function. Read the length once. Loop by index so I can skip empty slots. Call the callback with the item, the index and the array, and set `thisArg`. It returns a new array of the same length and never changes the original."
+"I'll write map to the spec. Check the callback is a function. Read the length
+once. Loop by index so I can skip empty slots. Call the callback with the
+item, the index and the array, and set `thisArg`. It returns a new array of
+the same length and never changes the original."
 
 ## 8. Check yourself
 
 **Check:** What does [1,2,3].map(parseInt) return?
 
-`[1, NaN, NaN]`. `map` passes the index as the second argument. `parseInt` reads that second argument as the base. So it tries base 1, then base 2, and fails. The fix is `map(Number)` or `map((v) => parseInt(v, 10))`.
+`[1, NaN, NaN]`. `map` passes the index as the second argument. `parseInt`
+reads that second argument as the base. So it tries base 1, then base 2, and
+fails. The fix is `map(Number)` or `map((v) => parseInt(v, 10))`.
 
 **Check:** Why is the accumulator the first argument of reduce?
 
-Because the accumulator is the value you carry forward, and the callback returns it. Putting it first also lets you pass a plain two-argument function like `Math.max` straight in.
+Because the accumulator is the value you carry forward, and the callback
+returns it. Putting it first also lets you pass a plain two-argument function
+like `Math.max` straight in.
 
 **Check:** Does map change the original array?
 
-No, it returns a new array. But if the items are objects and your callback changes them, the original objects change too. "Does not change the array" and "does not change the items" are different promises.
+No, it returns a new array. But if the items are objects and your callback
+changes them, the original objects change too. "Does not change the array" and
+"does not change the items" are different promises.
 
 ---
 
@@ -1844,7 +2029,9 @@ No, it returns a new array. But if the items are objects and your callback chang
 
 # Debounce and throttle
 
-These two are asked more than any other pair. They test closures, `this`, timers and API design in about thirty lines. The difference is one sentence. Debounce waits for the user to stop. Throttle allows one call every so often.
+These two are asked more than any other pair. They test closures, `this`,
+timers and API design in about thirty lines. The difference is one sentence.
+Debounce waits for the user to stop. Throttle allows one call every so often.
 
 ## 1. The difference
 
@@ -1856,17 +2043,20 @@ These two are asked more than any other pair. They test closures, `this`, timers
 | Used for | search box, form checking, autosave | scroll, resize, drag, mouse move |
 | Always runs? | only if the calls stop | yes, if you turn on the trailing call |
 
-**Why this matters**
+> **The tell in an interview**
 
-**The tell in an interview**
-
-If your code does not cancel the old timer, you wrote a throttle. If it cancels and only runs on the first call, you wrote a debounce with `leading` on. The requirements really are unclear, so ask which one they want before you type.
+If your code does not cancel the old timer, you wrote a throttle. If it
+cancels and only runs on the first call, you wrote a debounce with `leading`
+on. The requirements really are unclear, so ask which one they want before you
+type.
 
 ## 2. Debounce, full version
 
-This version has options, passes `this` and the arguments through, and adds `cancel` and `flush`. Those two methods are what separate a good answer from a great one.
+This version has options, passes `this` and the arguments through, and adds
+`cancel` and `flush`. Those two methods are what separate a good answer from a
+great one.
 
-**debounce.js**
+*debounce.js*
 
 ```js
 function debounce(fn, wait, { leading = false, trailing = true } = {}) {
@@ -1928,15 +2118,16 @@ console.log("four quick calls done, nothing has run yet");
 setTimeout(() => console.log("after 250ms, calls =", calls), 250);
 ```
 
-**Watch out**
+> **Why not use an arrow for the wrapper**
 
-**Why not use an arrow for the wrapper**
-
-Because the debounced function is usually a method: `this.handleInput = debounce(this.handleInput, 300)`. With an arrow, `this` is fixed when debounce is created, so every method call gets the wrong object. Use a normal `function` and pass `this` on with `fn.apply(this, args)`.
+Because the debounced function is usually a method: `this.handleInput =
+debounce(this.handleInput, 300)`. With an arrow, `this` is fixed when debounce
+is created, so every method call gets the wrong object. Use a normal
+`function` and pass `this` on with `fn.apply(this, args)`.
 
 ### Short version, if you run out of time
 
-**debounce-min.js**
+*debounce-min.js*
 
 ```js
 function debounce(fn, wait) {
@@ -1954,13 +2145,16 @@ log("third");
 console.log("three calls queued, only the last one should run");
 ```
 
-That is a fair interview answer. It handles `this` and the arguments. It does not have `leading`, `trailing` or `cancel`. Say what is missing and you keep the credit.
+That is a fair interview answer. It handles `this` and the arguments. It does
+not have `leading`, `trailing` or `cancel`. Say what is missing and you keep
+the credit.
 
 ## 3. Throttle, full version
 
-There are two ways to build this. This one checks the clock, and can also run once at the end so the last event is not lost.
+There are two ways to build this. This one checks the clock, and can also run
+once at the end so the last event is not lost.
 
-**throttle.js**
+*throttle.js*
 
 ```js
 function throttle(fn, wait, { leading = true, trailing = true } = {}) {
@@ -2025,11 +2219,11 @@ const burst = setInterval(() => {
 }, 3);
 ```
 
-**Tip**
+> **The trailing call is the part people forget**
 
-**The trailing call is the part people forget**
-
-Without it, the last event of a burst is dropped. For scroll position or window size, that last value is the one the user cares about. If you only build the leading call, say so.
+Without it, the last event of a burst is dropped. For scroll position or
+window size, that last value is the one the user cares about. If you only
+build the leading call, say so.
 
 ## 4. What each option does
 
@@ -2042,39 +2236,58 @@ Without it, the last event of a burst is dropped. For scroll position or window 
 
 ## 5. Which one to use where
 
-**Debounce** Search as you type, autosave, recalculating layout after a resize ends, checking a field once the user stops typing.
+**Debounce** Search as you type, autosave, recalculating layout after a resize
+ends, checking a field once the user stops typing.
 
-**Throttle** Scroll progress bars, drag handles, tracking mouse movement, checking for infinite scroll, limiting a like button.
+**Throttle** Scroll progress bars, drag handles, tracking mouse movement,
+checking for infinite scroll, limiting a like button.
 
-Both only limit work in the browser. They are not protection for your server. Saying that shows you know where the line is.
+Both only limit work in the browser. They are not protection for your server.
+Saying that shows you know where the line is.
 
 ## 6. Likely follow-up questions
 
 **Check:** "Add maxWait so it runs at least every N ms."
 
-Save the time of the last real run. On each call, if `now - lastRunTime >= maxWait`, run straight away. That is lodash's `maxWait`: a debounce that becomes a throttle when the input never stops. Autosave needs this. You do not want a user typing for two minutes and never getting a save.
+Save the time of the last real run. On each call, if `now - lastRunTime >=
+maxWait`, run straight away. That is lodash's `maxWait`: a debounce that
+becomes a throttle when the input never stops. Autosave needs this. You do not
+want a user typing for two minutes and never getting a save.
 
 **Check:** "How do you test it?"
 
-With fake timers: `vi.useFakeTimers()` or `jest.useFakeTimers()`. Call the function, move the fake clock, then check how many times it ran. Check three things: the count, the arguments of the last run, and that `this` was the right object. Never test with real waiting.
+With fake timers: `vi.useFakeTimers()` or `jest.useFakeTimers()`. Call the
+function, move the fake clock, then check how many times it ran. Check three
+things: the count, the arguments of the last run, and that `this` was the
+right object. Never test with real waiting.
 
 **Check:** "How do you cancel a pending call when the component unmounts?"
 
-Use the `cancel` method in the cleanup function: `useEffect(() => { const d = debounce(save, 500); return d.cancel; }, [])`. Without it, a timer can fire after the component is gone and write to state that no longer exists.
+Use the `cancel` method in the cleanup function: `useEffect(() => { const d =
+debounce(save, 500); return d.cancel; }, [])`. Without it, a timer can fire
+after the component is gone and write to state that no longer exists.
 
 **Check:** "Can you await a debounced function?"
 
-Not really. It returns whatever the last run returned, which is usually `undefined` on the first call. Callers cannot wait for a pending call unless you wrap it in a promise yourself. That is a real limitation of the API, and worth saying.
+Not really. It returns whatever the last run returned, which is usually
+`undefined` on the first call. Callers cannot wait for a pending call unless
+you wrap it in a promise yourself. That is a real limitation of the API, and
+worth saying.
 
-**Say this in an interview**
+> **Say this in an interview**
 
-"Debounce waits until the calls stop. Throttle caps how often it can run. I'll keep the timer in a closure, pass `this` and the arguments through with `apply`, and add `cancel` and `flush` so the caller can clean up. Do you want leading, trailing, or both?"
+"Debounce waits until the calls stop. Throttle caps how often it can run. I'll
+keep the timer in a closure, pass `this` and the arguments through with
+`apply`, and add `cancel` and `flush` so the caller can clean up. Do you want
+leading, trailing, or both?"
 
 ## 7. Check yourself
 
-**Quiz:** A debounced function is called 5 times with 100ms gaps, and wait is 200. How many times does it run?
+**Quiz:** A debounced function is called 5 times with 100ms gaps, and wait is
+200. How many times does it run?
 
 Options:
+
 - A. Once. Each call resets the timer, and the gap is too short. **← correct**
 - B. Five times, once per call
 - C. Twice, at the start and the end
@@ -2083,11 +2296,15 @@ With `leading: true` it would be twice.
 
 **Check:** Why is clearTimeout safe on a timer that already ran?
 
-Because it does nothing for an unknown or finished id. So you can call it without checking first. You should still set your variable to `null`, because the code uses `timer === null` to detect the first call.
+Because it does nothing for an unknown or finished id. So you can call it
+without checking first. You should still set your variable to `null`, because
+the code uses `timer === null` to detect the first call.
 
 **Check:** Can you build throttle out of debounce?
 
-Partly. `debounce(fn, wait, { leading: true, trailing: true, maxWait: wait })` behaves like a throttle. That is exactly how lodash does it: one function with options, not two separate algorithms.
+Partly. `debounce(fn, wait, { leading: true, trailing: true, maxWait: wait })`
+behaves like a throttle. That is exactly how lodash does it: one function with
+options, not two separate algorithms.
 
 ---
 
@@ -2101,7 +2318,10 @@ Partly. `debounce(fn, wait, { leading: true, trailing: true, maxWait: wait })` b
 
 # Promise.all and friends
 
-There are four helpers for running several promises together. They share the same traps: keep the results in input order, handle an empty list, and accept plain values. Writing `all` takes fifteen lines. The score comes from explaining when to use the other three.
+There are four helpers for running several promises together. They share the
+same traps: keep the results in input order, handle an empty list, and accept
+plain values. Writing `all` takes fifteen lines. The score comes from
+explaining when to use the other three.
 
 ## 1. The four, side by side
 
@@ -2112,15 +2332,15 @@ There are four helpers for running several promises together. They share the sam
 | `any` | the first success | all of them fail | you have backups, first one wins |
 | `race` | whichever finishes first | if that one failed | a timeout, or the fastest source |
 
-**Why this matters**
+> **Two words that decide your answer**
 
-**Two words that decide your answer**
-
-`all` stops at the **first** failure. It does not wait for the rest. `any` waits for the **last** failure before giving up. Mixing those up is the most common mistake in this question.
+`all` stops at the **first** failure. It does not wait for the rest. `any`
+waits for the **last** failure before giving up. Mixing those up is the most
+common mistake in this question.
 
 ## 2. Writing Promise.all
 
-**promiseAll.js**
+*promiseAll.js*
 
 ```js
 function promiseAll(list) {
@@ -2152,9 +2372,7 @@ promiseAll([Promise.reject(new Error("nope")), slow("ignored", 10)])
 promiseAll([]).then((v) => console.log("empty list:", v));
 ```
 
-**Watch out**
-
-**Three bugs that keep appearing**
+> **Three bugs that keep appearing**
 
 1. **Pushing as each one finishes.** Then the order is finish order, which is wrong. Use the index.
 2. **Not handling an empty list.** The promise stays pending forever. This has frozen real apps.
@@ -2162,9 +2380,10 @@ promiseAll([]).then((v) => console.log("empty list:", v));
 
 ## 3. Writing allSettled
 
-Same idea, but every failure is turned into a normal value. So the outer promise can never fail.
+Same idea, but every failure is turned into a normal value. So the outer
+promise can never fail.
 
-**allSettled.js**
+*allSettled.js*
 
 ```js
 function allSettled(list) {
@@ -2188,11 +2407,13 @@ allSettled([ok, bad, "plain value"]).then((results) => {
 });
 ```
 
-This is the one to use for bulk work. Upload ten files, report which ones failed, keep the ones that worked. In an interview, the phrase "some may fail and that is fine" is what shows you know when to use it.
+This is the one to use for bulk work. Upload ten files, report which ones
+failed, keep the ones that worked. In an interview, the phrase "some may fail
+and that is fine" is what shows you know when to use it.
 
 ## 4. Writing Promise.any
 
-**promiseAny.js**
+*promiseAny.js*
 
 ```js
 function promiseAny(list) {
@@ -2227,11 +2448,12 @@ promiseAny([fail("x", 5), fail("y", 10)])
   });
 ```
 
-`AggregateError` is a real error type with an `errors` array. Most people miss that.
+`AggregateError` is a real error type with an `errors` array. Most people miss
+that.
 
 ## 5. Writing Promise.race
 
-**promiseRace.js**
+*promiseRace.js*
 
 ```js
 function promiseRace(list) {
@@ -2260,17 +2482,19 @@ withTimeout(slow("too late", 100), 20)
   .catch((e) => console.log("timeout:", e.message));
 ```
 
-**Tip**
+> **race does not stop the loser**
 
-**race does not stop the loser**
-
-The slower promise keeps running. Its result is just ignored. If the work is a `fetch`, pass an `AbortController` signal so the request is actually cancelled. Otherwise you saved time but not bandwidth. Saying this is a strong signal.
+The slower promise keeps running. Its result is just ignored. If the work is a
+`fetch`, pass an `AbortController` signal so the request is actually
+cancelled. Otherwise you saved time but not bandwidth. Saying this is a strong
+signal.
 
 ## 6. The real follow-up: limit how many run at once
 
-`Promise.all` on 10,000 URLs opens 10,000 requests. The practical answer is a pool that only runs a few at a time.
+`Promise.all` on 10,000 URLs opens 10,000 requests. The practical answer is a
+pool that only runs a few at a time.
 
-**mapLimit.js**
+*mapLimit.js*
 
 ```js
 async function mapLimit(items, limit, worker) {
@@ -2295,30 +2519,40 @@ mapLimit([1, 2, 3, 4, 5, 6], 2, work)
   .then((v) => console.log("results:", v));
 ```
 
-Note the important part: `next++` happens immediately, so two workers can never grab the same index. That is what makes it safe.
+Note the important part: `next++` happens immediately, so two workers can
+never grab the same index. That is what makes it safe.
 
 ## 7. Check yourself
 
-**Quiz:** Promise.all([p1, p2]), where p1 fails at 10ms and p2 succeeds at 50ms. What happens?
+**Quiz:** Promise.all([p1, p2]), where p1 fails at 10ms and p2 succeeds at
+50ms. What happens?
 
 Options:
+
 - A. It fails at 10ms, and p2's value is thrown away **← correct**
 - B. It waits for both, then fails
 - C. It succeeds with a missing value
 
-`all` stops at the first failure. `allSettled` is the one that waits for everything.
+`all` stops at the first failure. `allSettled` is the one that waits for
+everything.
 
-**Check:** Why does Promise.all([]) finish at once, but Promise.race([]) never finishes?
+**Check:** Why does Promise.all([]) finish at once, but Promise.race([]) never
+finishes?
 
-`all` knows there is nothing left to wait for, so it gives an empty array. `race` needs one promise to finish, and there are none, so it waits forever.
+`all` knows there is nothing left to wait for, so it gives an empty array.
+`race` needs one promise to finish, and there are none, so it waits forever.
 
 **Check:** Can allSettled ever fail?
 
-Not because of its inputs, that is the whole point. It can still throw immediately if you pass something that is not a list, because the argument is checked before the promise work starts.
+Not because of its inputs, that is the whole point. It can still throw
+immediately if you pass something that is not a list, because the argument is
+checked before the promise work starts.
 
 **Check:** How would you try three mirrors and take the first that works?
 
-`Promise.any(mirrors.map(fetchFrom))`, then `.catch(() => fallback())` for when all three fail. If you also need a time limit, race the whole thing against a timer.
+`Promise.any(mirrors.map(fetchFrom))`, then `.catch(() => fallback())` for
+when all three fail. If you also need a time limit, race the whole thing
+against a timer.
 
 ---
 
@@ -2332,11 +2566,13 @@ Not because of its inputs, that is the whole point. It can still throw immediate
 
 # Retry with backoff
 
-A small helper that shows whether you have run real code. The code is short. The judgement is in three questions. What should be retried? How long are you willing to wait? How does the caller stop it?
+A small helper that shows whether you have run real code. The code is short.
+The judgement is in three questions. What should be retried? How long are you
+willing to wait? How does the caller stop it?
 
 ## 1. Start simple
 
-**retry-naive.js**
+*retry-naive.js*
 
 ```js
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -2363,11 +2599,14 @@ retry(flaky, 3, 50)
   .catch((e) => console.log("gave up:", e.message));
 ```
 
-It works. What is wrong for real use: the same delay hammers a server that is already struggling, there is no limit on total time, the caller cannot stop it, and it retries errors that will never succeed, like a 404.
+It works. What is wrong for real use: the same delay hammers a server that is
+already struggling, there is no limit on total time, the caller cannot stop
+it, and it retries errors that will never succeed, like a 404.
 
 ## 2. Backoff means waiting longer each time
 
-The delay doubles: 100ms, 200ms, 400ms, 800ms. Add a maximum so the wait never gets silly.
+The delay doubles: 100ms, 200ms, 400ms, 800ms. Add a maximum so the wait never
+gets silly.
 
 | Try | Delay (start 100ms, doubling) | With a 1000ms cap |
 | --- | --- | --- |
@@ -2379,7 +2618,9 @@ The delay doubles: 100ms, 200ms, 400ms, 800ms. Add a maximum so the wait never g
 
 ### Why add randomness
 
-If a thousand users fail at the same moment, they all retry at the same moment. The server gets hit again and stays down. Adding a random amount spreads them out. That is called jitter.
+If a thousand users fail at the same moment, they all retry at the same
+moment. The server gets hit again and stays down. Adding a random amount
+spreads them out. That is called jitter.
 
 - **Full jitter:** a random time between 0 and the delay. Spreads the most.
 - **Equal jitter:** half the delay plus a random part. Keeps a minimum wait.
@@ -2387,7 +2628,7 @@ If a thousand users fail at the same moment, they all retry at the same moment. 
 
 ## 3. The version to write in an interview
 
-**retry.js**
+*retry.js*
 
 ```js
 const sleep = (ms, signal) => new Promise((resolve, reject) => {
@@ -2452,9 +2693,7 @@ retry(flaky, {
   .catch((e) => console.log("failed:", e.message));
 ```
 
-**Why this matters**
-
-**Five things this version gets right**
+> **Five things this version gets right**
 
 - **It stops.** There is a limit on tries and on the delay.
 - **It is picky.** `shouldRetry` keeps 404s and code bugs out of the loop.
@@ -2464,9 +2703,11 @@ retry(flaky, {
 
 ## 4. Stopping the wait matters too
 
-Cancelling only the request is not enough. A pending `sleep` keeps the loop alive, and the function will call `fn` again after the caller has moved on. Passing the signal into the sleep is what makes stopping instant.
+Cancelling only the request is not enough. A pending `sleep` keeps the loop
+alive, and the function will call `fn` again after the caller has moved on.
+Passing the signal into the sleep is what makes stopping instant.
 
-**abort.js**
+*abort.js*
 
 ```js
 const sleep = (ms, signal) => new Promise((resolve, reject) => {
@@ -2489,38 +2730,56 @@ sleep(500, controller.signal)
 
 **Check:** What must never be retried blindly?
 
-Actions that change something: charging a card, creating an order, sending an email. A retry after a timeout can do the action twice. The fix is a unique id the server can recognise, not a loop in the browser.
+Actions that change something: charging a card, creating an order, sending an
+email. A retry after a timeout can do the action twice. The fix is a unique id
+the server can recognise, not a loop in the browser.
 
 **Check:** How do you stop the total wait getting too long?
 
-Work out the budget first. Five tries with a 100ms start and doubling is about 3.1 seconds, plus request time. Either limit the number of tries, limit the delay, or pass a deadline and stop when it passes. In a browser the real deadline is the user's patience. Show a spinner and a cancel button.
+Work out the budget first. Five tries with a 100ms start and doubling is about
+3.1 seconds, plus request time. Either limit the number of tries, limit the
+delay, or pass a deadline and stop when it passes. In a browser the real
+deadline is the user's patience. Show a spinner and a cancel button.
 
 **Check:** Should the browser retry, or the server?
 
-Both, for different problems. The browser handles a brief network blip. The server handles a failing service behind it, using a queue. A browser should not be the safety net for a flaky backend. It should fail and let the user try again on purpose.
+Both, for different problems. The browser handles a brief network blip. The
+server handles a failing service behind it, using a queue. A browser should
+not be the safety net for a flaky backend. It should fail and let the user try
+again on purpose.
 
 **Check:** How do you test it without real waiting?
 
-Fake timers. Check how many times it ran, the order of the delays, that `shouldRetry` was asked, and that stopping it prevents more tries. Also test the case where it works first time. The loop must not wait at all.
+Fake timers. Check how many times it ran, the order of the delays, that
+`shouldRetry` was asked, and that stopping it prevents more tries. Also test
+the case where it works first time. The loop must not wait at all.
 
-**Say this in an interview**
+> **Say this in an interview**
 
-"I'd use backoff that doubles, with a random part and a maximum delay. I'd only retry failures worth retrying: network errors and 5xx. I'd accept an AbortSignal so the wait itself can be cancelled. For actions that change data, I'd add a unique id instead of retrying blindly."
+"I'd use backoff that doubles, with a random part and a maximum delay. I'd
+only retry failures worth retrying: network errors and 5xx. I'd accept an
+AbortSignal so the wait itself can be cancelled. For actions that change data,
+I'd add a unique id instead of retrying blindly."
 
 ## 6. Check yourself
 
 **Quiz:** Why add randomness to the delay?
 
 Options:
+
 - A. To make the average wait shorter
 - B. So many clients do not retry at the same moment **← correct**
 - C. To make tests repeatable
 
-It spreads them out. Repeatable tests are the opposite of what randomness gives you.
+It spreads them out. Repeatable tests are the opposite of what randomness
+gives you.
 
-**Check:** What is wrong with retry(() => fetch(url)) when the server returns 404?
+**Check:** What is wrong with retry(() => fetch(url)) when the server returns
+404?
 
-`fetch` only fails on network problems. A 404 is a normal response, so the retry never starts. And if you add a status check that throws, you will retry a permanent 404 three times. Check the status and only retry 408, 429 and 5xx.
+`fetch` only fails on network problems. A 404 is a normal response, so the
+retry never starts. And if you add a status check that throws, you will retry
+a permanent 404 three times. Check the status and only retry 408, 429 and 5xx.
 
 ---
 
@@ -2534,7 +2793,9 @@ It spreads them out. Repeatable tests are the opposite of what randomness gives 
 
 # Curry
 
-Currying turns `f(a, b, c)` into `f(a)(b)(c)`. The code is ten lines. The interview is about knowing when it stops, and about what `fn.length` counts and what it misses.
+Currying turns `f(a, b, c)` into `f(a)(b)(c)`. The code is ten lines. The
+interview is about knowing when it stops, and about what `fn.length` counts
+and what it misses.
 
 ## 1. Three words people mix up
 
@@ -2544,13 +2805,17 @@ Currying turns `f(a, b, c)` into `f(a)(b)(c)`. The code is ten lines. The interv
 | Partial application | fix some arguments now, pass the rest later | `addOne = add(1)` |
 | Uncurry | turn a curried function back into a normal one | `uncurry(add)(1, 2)` |
 
-In interviews, "curry" usually means "keep taking arguments until you have enough, then run". That is a mix of the first two. Build that, then say which strict definition you bent.
+In interviews, "curry" usually means "keep taking arguments until you have
+enough, then run". That is a mix of the first two. Build that, then say which
+strict definition you bent.
 
 ## 2. The main version
 
-`fn.length` is the number of parameters the function declares, counting stops at the first default or rest parameter. Curry collects arguments until it reaches that number, then runs the function.
+`fn.length` is the number of parameters the function declares, counting stops
+at the first default or rest parameter. Curry collects arguments until it
+reaches that number, then runs the function.
 
-**curry.js**
+*curry.js*
 
 ```js
 function curry(fn) {
@@ -2574,9 +2839,7 @@ console.log(curried(1, 2, 3));      // 6, all at once
 console.log(curried()(1)(2)(3));    // 6, empty call is harmless
 ```
 
-**Watch out**
-
-**fn.length gives the wrong number in three cases**
+> **fn.length gives the wrong number in three cases**
 
 - **Default values:** `(a, b = 1) => …` has length 1. Curry would run after one argument.
 - **Rest parameters:** `(...args) => …` has length 0. Curry would run immediately, every time.
@@ -2586,9 +2849,10 @@ Say this out loud. It shows you know how it works, not just the trick.
 
 ### When the number of arguments is unknown
 
-For `sum(1)(2)(3)` with no fixed count, there is no natural place to stop. Two common conventions exist.
+For `sum(1)(2)(3)` with no fixed count, there is no natural place to stop. Two
+common conventions exist.
 
-**variadic.js**
+*variadic.js*
 
 ```js
 // Convention 1: an empty call means "finish"
@@ -2616,13 +2880,16 @@ console.log("used as a number:", infiniteSum(1)(2)(3)(4)(5) * 1);
 console.log("used as a string:", `${infiniteSum(1)(2)(3)}`);
 ```
 
-The `valueOf` version is a popular puzzle: "make `sum(1)(2)(3) == 6` true". It works because the object is turned into a number when compared. But it fails with `===` and prints strangely. Mention that limit if you use it.
+The `valueOf` version is a popular puzzle: "make `sum(1)(2)(3) == 6` true". It
+works because the object is turned into a number when compared. But it fails
+with `===` and prints strangely. Mention that limit if you use it.
 
 ## 3. Leaving gaps to fill later
 
-Real curry helpers let you skip an argument and fill it later. You need to count how many real arguments you have, separately from the total.
+Real curry helpers let you skip an argument and fill it later. You need to
+count how many real arguments you have, separately from the total.
 
-**curry-placeholder.js**
+*curry-placeholder.js*
 
 ```js
 const _ = Symbol("gap");
@@ -2659,52 +2926,67 @@ console.log(greet("Hey", _, "!")("Lin"));
 
 ## 4. Why anyone uses curry
 
-**Reuse without wrappers** `const isAdmin = hasRole("admin")` reads better than an inline arrow, and the name shows in stack traces.
+**Reuse without wrappers** `const isAdmin = hasRole("admin")` reads better
+than an inline arrow, and the name shows in stack traces.
 
-**Building pipelines** `pipe(trim, toLower, validate)` needs functions with one argument. Curry adapts functions with more.
+**Building pipelines** `pipe(trim, toLower, validate)` needs functions with
+one argument. Curry adapts functions with more.
 
-**Settings first** Fix the context once, then vary the data many times: `log("checkout")`.
+**Settings first** Fix the context once, then vary the data many times:
+`log("checkout")`.
 
-**Event handlers** `onClick(id)` returns a handler. Same idea, usually written as a closure.
+**Event handlers** `onClick(id)` returns a handler. Same idea, usually written
+as a closure.
 
-**Tip**
+> **An honest note worth saying**
 
-**An honest note worth saying**
-
-In normal app code, a plain arrow is usually clearer: `const isAdmin = (u) => hasRole("admin", u)`. Curry earns its place in pipelines and library code. Interviewers like hearing that you would not curry everything.
+In normal app code, a plain arrow is usually clearer: `const isAdmin = (u) =>
+hasRole("admin", u)`. Curry earns its place in pipelines and library code.
+Interviewers like hearing that you would not curry everything.
 
 ## 5. Follow-up questions
 
 **Check:** Write curryRight.
 
-Same code, but put new arguments at the front: `curried.apply(this, [...more, ...args])`. Used for building pipelines from right to left.
+Same code, but put new arguments at the front: `curried.apply(this, [...more,
+...args])`. Used for building pipelines from right to left.
 
 **Check:** What happens if you curry a function with no parameters?
 
-`fn.length` is 0, so the first call already has enough and runs it. You cannot delay it. That is why the unknown-argument version needs a rule of its own instead of using the count.
+`fn.length` is 0, so the first call already has enough and runs it. You cannot
+delay it. That is why the unknown-argument version needs a rule of its own
+instead of using the count.
 
 **Check:** Does curry keep this?
 
-Only if you pass it on, as above with `fn.apply(this, args)` and `curried.apply(this, …)`. The `this` of the final call is the one used. With arrows you would lose it without noticing.
+Only if you pass it on, as above with `fn.apply(this, args)` and
+`curried.apply(this, …)`. The `this` of the final call is the one used. With
+arrows you would lose it without noticing.
 
 **Check:** How do you test a curried function?
 
-Test the full call, and one partial path. Then test the edges: extra arguments, an empty call, and a function with default values, which shows the `fn.length` behaviour.
+Test the full call, and one partial path. Then test the edges: extra
+arguments, an empty call, and a function with default values, which shows the
+`fn.length` behaviour.
 
 ## 6. Check yourself
 
 **Quiz:** What is ((a, b = 2) => a + b).length?
 
 Options:
+
 - A. 1 **← correct**
 - B. 2
 - C. 0
 
-Counting stops at the first default value. So curry would run after one argument.
+Counting stops at the first default value. So curry would run after one
+argument.
 
 **Check:** Why does each partial call need its own copy of the arguments?
 
-So earlier calls do not affect later ones. Each call returns a new function holding its own list. Otherwise `const f = curried(1); f(2); f(3)` would interfere with each other.
+So earlier calls do not affect later ones. Each call returns a new function
+holding its own list. Otherwise `const f = curried(1); f(2); f(3)` would
+interfere with each other.
 
 ---
 
@@ -2718,7 +3000,9 @@ So earlier calls do not affect later ones. Each call returns a new function hold
 
 # Flatten
 
-Flatten takes a nested array and returns a flat one. It is an easy recursion question until you are asked for a depth limit, a version without recursion, or a generator. Each one tests a different skill.
+Flatten takes a nested array and returns a flat one. It is an easy recursion
+question until you are asked for a depth limit, a version without recursion,
+or a generator. Each one tests a different skill.
 
 ## 1. Ask these three questions first
 
@@ -2728,7 +3012,7 @@ Flatten takes a nested array and returns a flat one. It is an easy recursion que
 
 ## 2. The recursive version
 
-**flatten.js**
+*flatten.js*
 
 ```js
 function flatten(arr) {
@@ -2757,13 +3041,17 @@ console.log("depth 2:", flattenDepth(nested, 2));
 console.log("no limit:", flattenDepth(nested, Infinity));
 ```
 
-Watch `concat` here. `acc.concat(item)` spreads the array. `acc.concat([item])` would wrap it instead. That difference causes a lot of accidental double flattening.
+Watch `concat` here. `acc.concat(item)` spreads the array.
+`acc.concat([item])` would wrap it instead. That difference causes a lot of
+accidental double flattening.
 
 ### About the cost
 
-`concat` makes a new array at every level, so the recursive version can be O(n·d). Pushing into one shared array keeps it O(n). Worth mentioning if the input could be large.
+`concat` makes a new array at every level, so the recursive version can be
+O(n·d). Pushing into one shared array keeps it O(n). Worth mentioning if the
+input could be large.
 
-**flatten-push.js**
+*flatten-push.js*
 
 ```js
 function flattenFast(arr, out = []) {
@@ -2779,9 +3067,11 @@ console.log(flattenFast([1, [2, [3, [4]]]]));
 
 ## 3. Without recursion, when the stack is the problem
 
-Recursion is limited by the call stack, which holds a few thousand levels. A very deep input throws `RangeError: Maximum call stack size exceeded`. Using your own list has no such limit.
+Recursion is limited by the call stack, which holds a few thousand levels. A
+very deep input throws `RangeError: Maximum call stack size exceeded`. Using
+your own list has no such limit.
 
-**flatten-iterative.js**
+*flatten-iterative.js*
 
 ```js
 function flattenIterative(arr) {
@@ -2819,15 +3109,16 @@ function flattenIterative2(arr) {
 console.log(flattenIterative2([1, [2, [3, 4]], 5]));
 ```
 
-**Why this matters**
+> **Why show both**
 
-**Why show both**
-
-The first is five lines and what you would write under time pressure. It reverses at the end because `pop` reads backwards. The second keeps an explicit list of positions, so the order is right and a depth limit is easy to add. Being able to explain the tradeoff is worth more than either version.
+The first is five lines and what you would write under time pressure. It
+reverses at the end because `pop` reads backwards. The second keeps an
+explicit list of positions, so the order is right and a depth limit is easy to
+add. Being able to explain the tradeoff is worth more than either version.
 
 ## 4. A generator version
 
-**flatten-generator.js**
+*flatten-generator.js*
 
 ```js
 function* flattenGen(arr) {
@@ -2851,11 +3142,13 @@ const big = [[1, 2], [3, [4, 5]], [6]];
 console.log("first match:", firstMatch(big, (n) => n % 2 === 0 && n > 3));
 ```
 
-The generator is still recursive, so the stack limit still applies. But it gives you laziness and early exit. "Nothing is built until someone asks for it" is the sentence that earns the point.
+The generator is still recursive, so the stack limit still applies. But it
+gives you laziness and early exit. "Nothing is built until someone asks for
+it" is the sentence that earns the point.
 
 ## 5. Edge cases
 
-**edges.js**
+*edges.js*
 
 ```js
 function flatten(arr) {
@@ -2883,11 +3176,12 @@ const isIterable = (v) => v != null && typeof v !== "string" && Symbol.iterator 
 console.log("typed array counts:", isIterable(new Uint8Array([1, 2])));
 ```
 
-**Watch out**
+> **Arrays that contain themselves**
 
-**Arrays that contain themselves**
-
-`const a = [1]; a.push(a);` makes any recursive flatten loop forever or overflow the stack. JSON cannot contain loops, so this rarely happens. But asking "can the input contain itself?" before you code is exactly the kind of question interviewers like.
+`const a = [1]; a.push(a);` makes any recursive flatten loop forever or
+overflow the stack. JSON cannot contain loops, so this rarely happens. But
+asking "can the input contain itself?" before you code is exactly the kind of
+question interviewers like.
 
 ## 6. Follow-up questions
 
@@ -2905,15 +3199,20 @@ function flattenObject(obj, prefix = "", out = {}) {
 // { a: { b: { c: 1 } } } → { "a.b.c": 1 }
 ```
 
-Same recursion, different result. Say why you skip arrays. Turning them into index keys is usually not wanted.
+Same recursion, different result. Say why you skip arrays. Turning them into
+index keys is usually not wanted.
 
 **Check:** How is Array.prototype.flat(Infinity) different?
 
-It is built in. It removes empty slots completely instead of turning them into `undefined`. It also respects `Symbol.isConcatSpreadable`. Your version is the right approximation for an interview. Say that.
+It is built in. It removes empty slots completely instead of turning them into
+`undefined`. It also respects `Symbol.isConcatSpreadable`. Your version is the
+right approximation for an interview. Say that.
 
 **Check:** What is the complexity?
 
-O(n) items visited, O(n) space for the result. The recursive `concat` version also allocates at every level. The push version and the generator do not. Depth costs O(d) stack space.
+O(n) items visited, O(n) space for the result. The recursive `concat` version
+also allocates at every level. The push version and the generator do not.
+Depth costs O(d) stack space.
 
 ---
 
@@ -2927,11 +3226,14 @@ O(n) items visited, O(n) space for the result. The recursive `concat` version al
 
 # Memoize
 
-Memoize saves the result of a function so it does not have to run again with the same arguments. The basic version is ten lines. Then come the real questions: how do you build the cache key, how do you avoid holding memory forever, and what if the same call is already running?
+Memoize saves the result of a function so it does not have to run again with
+the same arguments. The basic version is ten lines. Then come the real
+questions: how do you build the cache key, how do you avoid holding memory
+forever, and what if the same call is already running?
 
 ## 1. The basic version
 
-**memoize.js**
+*memoize.js*
 
 ```js
 function memoize(fn) {
@@ -2960,17 +3262,17 @@ zero(1);
 console.log("saved zero works:", calls);
 ```
 
-**Watch out**
+> **if (cache[key]) is the classic bug**
 
-**if (cache[key]) is the classic bug**
-
-It fails for a saved `0`, `""`, `false`, `null` and `NaN`. Use `Map.has`, or `key in cache` for a plain object. Small detail, very common mistake.
+It fails for a saved `0`, `""`, `false`, `null` and `NaN`. Use `Map.has`, or
+`key in cache` for a plain object. Small detail, very common mistake.
 
 ## 2. Making a key from several arguments
 
-`JSON.stringify(args)` is the popular answer, and it is wrong in specific ways you can name.
+`JSON.stringify(args)` is the popular answer, and it is wrong in specific ways
+you can name.
 
-**keys.js**
+*keys.js*
 
 ```js
 console.log(JSON.stringify([1, "1"]));       // [1,"1"], fine
@@ -2995,9 +3297,12 @@ console.log("order no longer matters:",
   keyOf([{ a: 1, b: 2 }]) === keyOf([{ b: 2, a: 1 }]));
 ```
 
-Even this only looks at the top level. The honest answer: the key is a design choice, and the right one depends on the data. For simple values, joining them as a string is fine. For objects, either ask the caller for a key, or use a `WeakMap`.
+Even this only looks at the top level. The honest answer: the key is a design
+choice, and the right one depends on the data. For simple values, joining them
+as a string is fine. For objects, either ask the caller for a key, or use a
+`WeakMap`.
 
-**memoize-with-resolver.js**
+*memoize-with-resolver.js*
 
 ```js
 function memoize(fn, makeKey) {
@@ -3021,9 +3326,11 @@ console.log("same object returned:", getUser(1) === getUser(1, { fresh: true }))
 
 ## 3. Objects: compare by reference, not by content
 
-If the argument is an object, the cache should usually use the object itself as the key. A `WeakMap` is the right tool. Its entries disappear when the object is garbage collected, so the cache cannot leak.
+If the argument is an object, the cache should usually use the object itself
+as the key. A `WeakMap` is the right tool. Its entries disappear when the
+object is garbage collected, so the cache cannot leak.
 
-**weak.js**
+*weak.js*
 
 ```js
 function memoizeByObject(fn) {
@@ -3052,17 +3359,20 @@ console.log("different object misses:",
   describe({ name: "alice" }) !== describe(alice));
 ```
 
-**Why this matters**
+> **Why WeakMap and not Map**
 
-**Why WeakMap and not Map**
-
-A `Map` keeps a strong reference to its keys. So every object you ever memoized stays in memory forever. That is a classic leak. A `WeakMap` holds them weakly and removes the entry when the object is collected. The catch: keys must be objects, and you cannot loop over it, so no LRU on top.
+A `Map` keeps a strong reference to its keys. So every object you ever
+memoized stays in memory forever. That is a classic leak. A `WeakMap` holds
+them weakly and removes the entry when the object is collected. The catch:
+keys must be objects, and you cannot loop over it, so no LRU on top.
 
 ## 4. A cache with a size limit
 
-An unlimited cache grows with every new argument. An LRU keeps the most recent N and drops the oldest. JavaScript's `Map` keeps insertion order, which makes this almost free.
+An unlimited cache grows with every new argument. An LRU keeps the most recent
+N and drops the oldest. JavaScript's `Map` keeps insertion order, which makes
+this almost free.
 
-**memoize-lru.js**
+*memoize-lru.js*
 
 ```js
 function memoizeLRU(fn, maxSize = 2) {
@@ -3098,9 +3408,10 @@ console.log("fn ran", calls, "times (expect 4)");
 
 ## 5. Async: do not run the same request twice
 
-Saving the finished value is only half of it. If ten components ask for the same user at once, you want one request. So save the *promise*, not the value.
+Saving the finished value is only half of it. If ten components ask for the
+same user at once, you want one request. So save the *promise*, not the value.
 
-**memoize-async.js**
+*memoize-async.js*
 
 ```js
 function memoizeAsync(fn) {
@@ -3133,9 +3444,7 @@ Promise.all([load(1), load(1), load(1)]).then(([a, b, c]) => {
 });
 ```
 
-**Tip**
-
-**Three details that make it production ready**
+> **Three details that make it production ready**
 
 - Save the **promise**, so callers at the same time share one request.
 - Delete on failure, or one network blip breaks the cache forever.
@@ -3148,23 +3457,33 @@ Promise.all([load(1), load(1), load(1)]).then(([a, b, c]) => {
 - **Many different arguments.** A cache that misses 99% of the time is a memory leak with extra steps.
 - **Results that get changed.** Two callers get the same object. If one changes it, the other sees the change. Freeze it or copy it.
 
-**Say this in an interview**
+> **Say this in an interview**
 
-"I'd build the key from the arguments, with an option for the caller to supply their own key. I'd use a `WeakMap` when the arguments are objects, so entries can be freed. I'd limit the size with an LRU so new arguments cannot grow it forever. For async functions I'd save the promise and delete it on failure."
+"I'd build the key from the arguments, with an option for the caller to supply
+their own key. I'd use a `WeakMap` when the arguments are objects, so entries
+can be freed. I'd limit the size with an LRU so new arguments cannot grow it
+forever. For async functions I'd save the promise and delete it on failure."
 
 ## 7. Check yourself
 
 **Check:** Why is React.useMemo not the same thing?
 
-`useMemo` is a cache for one component instance, keyed by the dependency list. React may throw it away at any time. It is a speed hint, not a guarantee. This memoize is a general cache keyed by arguments. Treating them as the same causes bugs where people expect `useMemo` to always return the same object.
+`useMemo` is a cache for one component instance, keyed by the dependency list.
+React may throw it away at any time. It is a speed hint, not a guarantee. This
+memoize is a general cache keyed by arguments. Treating them as the same
+causes bugs where people expect `useMemo` to always return the same object.
 
 **Check:** What happens if the memoized function throws?
 
-In the basic version nothing is saved, so every call tries again. That is usually what you want. In the async version you must delete the entry, or the failed promise stays in the cache and every later call fails at once.
+In the basic version nothing is saved, so every call tries again. That is
+usually what you want. In the async version you must delete the entry, or the
+failed promise stays in the cache and every later call fails at once.
 
 **Check:** How would you add a time limit to entries?
 
-Save `{ value, expiresAt }` and check it when reading. Or set one timer per entry, but that adds overhead for many keys. For many keys, check lazily when someone reads, instead of scheduling timers.
+Save `{ value, expiresAt }` and check it when reading. Or set one timer per
+entry, but that adds overhead for many keys. For many keys, check lazily when
+someone reads, instead of scheduling timers.
 
 ---
 
@@ -3178,11 +3497,14 @@ Save `{ value, expiresAt }` and check it when reading. Or set one timer per entr
 
 # Deep clone
 
-Deep clone copies an object and everything inside it. This question walks through JavaScript's object model: objects that contain themselves, prototypes, `Map`, `Set`, and functions. Nobody expects you to handle everything. They expect you to know what you skipped.
+Deep clone copies an object and everything inside it. This question walks
+through JavaScript's object model: objects that contain themselves,
+prototypes, `Map`, `Set`, and functions. Nobody expects you to handle
+everything. They expect you to know what you skipped.
 
 ## 1. Why the JSON trick fails
 
-**json-trap.js**
+*json-trap.js*
 
 ```js
 const source = {
@@ -3222,15 +3544,16 @@ try {
 }
 ```
 
-**Watch out**
+> **Say this before you write any code**
 
-**Say this before you write any code**
-
-"The JSON trick is a conversion, not a copy. It loses types, drops `undefined` and functions, turns `NaN` into `null`, flattens `Map` and `Set` to `{}`, and throws on objects that contain themselves. For plain data that came from JSON it is fine, and fast."
+"The JSON trick is a conversion, not a copy. It loses types, drops `undefined`
+and functions, turns `NaN` into `null`, flattens `Map` and `Set` to `{}`, and
+throws on objects that contain themselves. For plain data that came from JSON
+it is fine, and fast."
 
 ## 2. The built-in answer: structuredClone
 
-**structured-clone.js**
+*structured-clone.js*
 
 ```js
 if (typeof structuredClone === "function") {
@@ -3252,19 +3575,25 @@ if (typeof structuredClone === "function") {
 }
 ```
 
-`structuredClone` exists in every current browser and in Node 17+. It handles self-references, `Date`, `Map`, `Set`, `RegExp` and typed arrays. It does **not** keep prototypes, getters, setters, or functions. A class instance comes back as a plain object.
+`structuredClone` exists in every current browser and in Node 17+. It handles
+self-references, `Date`, `Map`, `Set`, `RegExp` and typed arrays. It does
+**not** keep prototypes, getters, setters, or functions. A class instance
+comes back as a plain object.
 
-**Tip**
+> **Lead with this in an interview**
 
-**Lead with this in an interview**
-
-"In real code I'd use `structuredClone`. If the environment cannot support it, or I need to keep prototypes and class methods, here is the recursive version." Knowing the built-in exists is the signal. Reimplementing it without mentioning it looks like you learned from blog posts.
+"In real code I'd use `structuredClone`. If the environment cannot support it,
+or I need to keep prototypes and class methods, here is the recursive
+version." Knowing the built-in exists is the signal. Reimplementing it without
+mentioning it looks like you learned from blog posts.
 
 ## 3. Writing it yourself
 
-Three ideas carry the whole thing. Stop at simple values. Keep a `WeakMap` of objects you already copied, so self-references work. Handle each built-in type before falling back to a plain object.
+Three ideas carry the whole thing. Stop at simple values. Keep a `WeakMap` of
+objects you already copied, so self-references work. Handle each built-in type
+before falling back to a plain object.
 
-**deepClone.js**
+*deepClone.js*
 
 ```js
 function deepClone(value, seen = new WeakMap()) {
@@ -3334,11 +3663,12 @@ const u = deepClone(new User("ada"));
 console.log("class method still works:", u.greet());
 ```
 
-**Why this matters**
+> **Why save the copy before going deeper?**
 
-**Why save the copy before going deeper?**
-
-Because the copy must exist in the map before any child is copied. Otherwise an object that contains itself recurses forever. It also means two properties pointing at the same object still point at the same copy. This one line matters more than any single type branch.
+Because the copy must exist in the map before any child is copied. Otherwise
+an object that contains itself recurses forever. It also means two properties
+pointing at the same object still point at the same copy. This one line
+matters more than any single type branch.
 
 ## 4. What this still does not handle
 
@@ -3353,7 +3683,7 @@ Because the copy must exist in the map before any child is copied. Otherwise an 
 
 ### Keeping getters, if they ask
 
-**descriptors.js**
+*descriptors.js*
 
 ```js
 function cloneWithDescriptors(value, seen = new WeakMap()) {
@@ -3381,7 +3711,7 @@ console.log("hidden property kept:",
 
 ## 5. Shallow, deep, and the middle
 
-**levels.js**
+*levels.js*
 
 ```js
 const src = { a: 1, nested: { b: 2 }, list: [{ c: 3 }] };
@@ -3399,13 +3729,17 @@ const arrCopy = [...arr];
 console.log("array items shared:", arrCopy[0] === arr[0]);
 ```
 
-Shallow copies are usually the right choice in React. You replace the part that changed and keep the rest by reference. Deep copying state on every render is a performance bug, not a safety feature.
+Shallow copies are usually the right choice in React. You replace the part
+that changed and keep the rest by reference. Deep copying state on every
+render is a performance bug, not a safety feature.
 
 ## 6. Check yourself
 
-**Quiz:** What is the smallest change that makes a simple recursive clone handle self-references?
+**Quiz:** What is the smallest change that makes a simple recursive clone
+handle self-references?
 
 Options:
+
 - A. Add a depth limit
 - B. Keep a `WeakMap` of copies and check it before going deeper **← correct**
 - C. Wrap it in try/catch
@@ -3414,11 +3748,15 @@ A depth limit avoids the crash but silently cuts off data.
 
 **Check:** Why WeakMap and not Map for the seen list?
 
-The list is only needed while the copy runs. A `WeakMap` avoids holding strong references. A local `Map` would also be freed when the call returns, but `WeakMap` is the better habit and the expected answer.
+The list is only needed while the copy runs. A `WeakMap` avoids holding strong
+references. A local `Map` would also be freed when the call returns, but
+`WeakMap` is the better habit and the expected answer.
 
 **Check:** Does a deep clone keep "these two properties are the same object"?
 
-With the `seen` map, yes. If `a.x === a.y`, then `clone.x === clone.y`. Without it you get two separate copies, which breaks code that relies on them being the same.
+With the `seen` map, yes. If `a.x === a.y`, then `clone.x === clone.y`.
+Without it you get two separate copies, which breaks code that relies on them
+being the same.
 
 ---
 
@@ -3432,11 +3770,16 @@ With the `seen` map, yes. If `a.x === a.y`, then `clone.x === clone.y`. Without 
 
 # The DOM and events
 
-These questions only exist in front-end interviews. Interviewers look for two things. Do you know the difference between a list that updates itself and a list that does not? And can you attach one event listener instead of a thousand?
+These questions only exist in front-end interviews. Interviewers look for two
+things. Do you know the difference between a list that updates itself and a
+list that does not? And can you attach one event listener instead of a
+thousand?
 
 ## 1. The page is a tree
 
-The page is a tree of nodes. Elements, text and comments are all nodes, with different `nodeType` numbers. The difference that matters most in practice: **child nodes include text; children are elements only**.
+The page is a tree of nodes. Elements, text and comments are all nodes, with
+different `nodeType` numbers. The difference that matters most in practice:
+**child nodes include text; children are elements only**.
 
 | You want | Elements only | All nodes |
 | --- | --- | --- |
@@ -3446,11 +3789,12 @@ The page is a tree of nodes. Elements, text and comments are all nodes, with dif
 | Parent | `el.parentElement` | `el.parentNode` |
 | Next sibling | `nextElementSibling` | `nextSibling` |
 
-`childNodes` counts the whitespace between tags. That is why `firstChild` on formatted HTML often gives a text node. It causes real bugs, so mention it.
+`childNodes` counts the whitespace between tags. That is why `firstChild` on
+formatted HTML often gives a text node. It causes real bugs, so mention it.
 
 ## 2. The headline question: live vs static
 
-**live-vs-static.js**
+*live-vs-static.js*
 
 ```js
 const host = document.createElement("div");
@@ -3471,15 +3815,16 @@ console.log("live is an HTMLCollection:", live.constructor.name);
 console.log("fixed is a NodeList:", fixed.constructor.name);
 ```
 
-**Watch out**
+> **Why this matters in a loop**
 
-**Why this matters in a loop**
-
-If you remove items while looping over a live list, you skip some. The list renumbers as you go. Copy it first with `[...live]` or `Array.from(live)`. `querySelectorAll` is safe to loop because it does not change. But it also will not see items added later.
+If you remove items while looping over a live list, you skip some. The list
+renumbers as you go. Copy it first with `[...live]` or `Array.from(live)`.
+`querySelectorAll` is safe to loop because it does not change. But it also
+will not see items added later.
 
 ## 3. Finding elements
 
-**selectors.js**
+*selectors.js*
 
 ```js
 const root = document.createElement("div");
@@ -3506,7 +3851,7 @@ console.log("matches the selector:", root.querySelector("li").matches("[data-id=
 
 ## 4. Creating and changing elements
 
-**create.js**
+*create.js*
 
 ```js
 const ul = document.createElement("ul");
@@ -3541,18 +3886,18 @@ box.innerHTML = "<b>real bold</b>";       // becomes an element
 console.log("innerHTML gives:", box.innerHTML);
 ```
 
-**Watch out**
-
-**Two things reviewers always catch**
+> **Two things reviewers always catch**
 
 - **`innerHTML` with user data is a security hole.** Use `textContent`, or clean the input first. Also, setting `innerHTML` destroys and rebuilds everything inside. Every listener on those elements is gone.
 - **Reading and writing layout in a loop.** Reading `offsetHeight` after each write forces the browser to recalculate every time. Do all reads first, then all writes.
 
 ## 5. How events travel
 
-An event goes down from `window` to the target, then back up. Down is the capture phase. Up is the bubble phase. Listeners run in the bubble phase unless you pass `{ capture: true }`.
+An event goes down from `window` to the target, then back up. Down is the
+capture phase. Up is the bubble phase. Listeners run in the bubble phase
+unless you pass `{ capture: true }`.
 
-**phases.js**
+*phases.js*
 
 ```js
 const outer = document.createElement("div");
@@ -3570,7 +3915,7 @@ console.log(order.join(" → "));
 
 ### One listener for a list that keeps changing
 
-**delegate.js**
+*delegate.js*
 
 ```js
 const list = document.createElement("ul");
@@ -3597,15 +3942,16 @@ li.querySelector("button").click();
 console.log("handled:", clicked, "· with 1 listener, not 3");
 ```
 
-**Tip**
+> **Why delegation is better**
 
-**Why delegation is better**
-
-One listener instead of many. It survives re-rendering, because new children are covered. It uses less memory. The cost: you must find the real target with `closest()`, and you cannot use a separate closure per item. Read the id from `dataset` instead. For long lists, this is the default choice.
+One listener instead of many. It survives re-rendering, because new children
+are covered. It uses less memory. The cost: you must find the real target with
+`closest()`, and you cannot use a separate closure per item. Read the id from
+`dataset` instead. For long lists, this is the default choice.
 
 ### Removing listeners, and once
 
-**cleanup.js**
+*cleanup.js*
 
 ```js
 const el = document.createElement("button");
@@ -3627,13 +3973,17 @@ el.click();
 console.log("with once:", onceHits);
 ```
 
-`removeEventListener` needs the exact same function and the same capture flag. That is why named handlers exist, and why you can never remove an inline arrow. In single-page apps that is a common leak.
+`removeEventListener` needs the exact same function and the same capture flag.
+That is why named handlers exist, and why you can never remove an inline
+arrow. In single-page apps that is a common leak.
 
 ## 6. Writing getElementsByClassName
 
-The expected answer is a depth-first walk that collects matching elements. Two details: the real method accepts several classes separated by spaces, and it returns a live list.
+The expected answer is a depth-first walk that collects matching elements. Two
+details: the real method accepts several classes separated by spaces, and it
+returns a live list.
 
-**byClassName.js**
+*byClassName.js*
 
 ```js
 function getElementsByClassName(root, classNames) {
@@ -3671,9 +4021,11 @@ console.log("both classes:", getElementsByClassName(doc, "card wide").length);
 console.log("by tag:", getElementsByTagName(doc, "p").length);
 ```
 
-**Say this in an interview**
+> **Say this in an interview**
 
-"A depth-first walk over `children`, not `childNodes`, so I skip text nodes. I'd mention that the real method returns a live `HTMLCollection` and mine does not. And that you must not change a live list while looping over it."
+"A depth-first walk over `children`, not `childNodes`, so I skip text nodes.
+I'd mention that the real method returns a live `HTMLCollection` and mine does
+not. And that you must not change a live list while looping over it."
 
 ## 7. Performance notes worth dropping
 
@@ -3686,26 +4038,36 @@ console.log("by tag:", getElementsByTagName(doc, "p").length);
 
 ## 8. Check yourself
 
-**Quiz:** You attach listeners to 500 rows, then rebuild the table with innerHTML. What breaks?
+**Quiz:** You attach listeners to 500 rows, then rebuild the table with
+innerHTML. What breaks?
 
 Options:
+
 - A. Nothing, listeners are re-attached
 - B. The old elements are destroyed, so every listener is gone **← correct**
 - C. Only the last row keeps its listener
 
-Setting `innerHTML` replaces everything inside. Delegation on the table avoids the whole problem.
+Setting `innerHTML` replaces everything inside. Delegation on the table avoids
+the whole problem.
 
 **Check:** Why does el.firstChild sometimes give a text node?
 
-Because the space between tags is a real text node. Use `firstElementChild` when you mean an element. This causes a lot of "why is my child undefined" bugs.
+Because the space between tags is a real text node. Use `firstElementChild`
+when you mean an element. This causes a lot of "why is my child undefined"
+bugs.
 
 **Check:** What is the difference between stopPropagation and preventDefault?
 
-`stopPropagation` stops the event reaching other listeners. `preventDefault` stops the browser's own action, like following a link or submitting a form. They are unrelated. A link's action can be stopped while the event still bubbles.
+`stopPropagation` stops the event reaching other listeners. `preventDefault`
+stops the browser's own action, like following a link or submitting a form.
+They are unrelated. A link's action can be stopped while the event still
+bubbles.
 
 **Check:** How would you close a menu when the user clicks outside it?
 
-Listen on `document` and check `menu.contains(event.target)`. If it is false, close. Remove the document listener when the menu disappears. Listening in the capture phase lets you close before other handlers act.
+Listen on `document` and check `menu.contains(event.target)`. If it is false,
+close. Remove the document listener when the menu disappears. Listening in the
+capture phase lets you close before other handlers act.
 
 ---
 
@@ -3719,21 +4081,25 @@ Listen on `document` and check `menu.contains(event.target)`. If it is false, cl
 
 # Event emitter
 
-An event emitter lets one part of your code announce that something happened, and other parts listen. It is about forty lines, and it is a good test of object design. How do you store listeners? How do you remove one? What if a listener removes itself while you are calling the others?
+An event emitter lets one part of your code announce that something happened,
+and other parts listen. It is about forty lines, and it is a good test of
+object design. How do you store listeners? How do you remove one? What if a
+listener removes itself while you are calling the others?
 
 ## 1. The idea
 
-Keep a map from event name to a list of functions. `on` adds one. `off` removes one. `emit` calls them all. Everything else is a variation on that.
+Keep a map from event name to a list of functions. `on` adds one. `off`
+removes one. `emit` calls them all. Everything else is a variation on that.
 
-**Why this matters**
+> **Why interviewers use this question**
 
-**Why interviewers use this question**
-
-There is no algorithm to hide behind. What is left is design. Does `on` return a way to unsubscribe? What does `emit` return? What if a listener throws? Each choice is a sentence you have to defend.
+There is no algorithm to hide behind. What is left is design. Does `on` return
+a way to unsubscribe? What does `emit` return? What if a listener throws? Each
+choice is a sentence you have to defend.
 
 ## 2. The code
 
-**EventEmitter.js**
+*EventEmitter.js*
 
 ```js
 class EventEmitter {
@@ -3821,17 +4187,20 @@ console.log("listeners left:", bus.count("save"));
 | Empty event | removed from the map | Stops the map growing with empty entries |
 | `off` with no handler | removes all for that event | Matches Node, and it is the usual cleanup call |
 
-**Watch out**
+> **The bug that bites: changing the list while looping**
 
-**The bug that bites: changing the list while looping**
-
-If you loop over the live `Set` and a listener removes itself, the loop skips the next listener. It silently never runs. Copying with `[...set]` prevents it. It is the same class of bug as removing items from a live `HTMLCollection`.
+If you loop over the live `Set` and a listener removes itself, the loop skips
+the next listener. It silently never runs. Copying with `[...set]` prevents
+it. It is the same class of bug as removing items from a live
+`HTMLCollection`.
 
 ## 4. What if a listener throws?
 
-In the code above, the error reaches whoever called `emit` and the remaining listeners are skipped. Node's emitter does the same. Whether that is right depends on what you are building.
+In the code above, the error reaches whoever called `emit` and the remaining
+listeners are skipped. Node's emitter does the same. Whether that is right
+depends on what you are building.
 
-**isolate.js**
+*isolate.js*
 
 ```js
 class SafeEmitter {
@@ -3864,11 +4233,13 @@ bus.on("tick", () => console.log("the second listener still ran"));
 bus.emit("tick");
 ```
 
-Catching each error is usually right for UI events like logging and analytics. It is usually wrong for data pipelines, where a failure should stop everything. Say which one you are building.
+Catching each error is usually right for UI events like logging and analytics.
+It is usually wrong for data pipelines, where a failure should stop
+everything. Say which one you are building.
 
 ## 5. Memory leaks: the real-world failure
 
-**leak.js**
+*leak.js*
 
 ```js
 // A component listens when it mounts…
@@ -3895,44 +4266,61 @@ Four ways this leaks in real code:
 3. You use one global bus for everything, including per-request listeners.
 4. You add a `once` listener for an event that never happens.
 
-**Tip**
+> **One sentence that explains it**
 
-**One sentence that explains it**
-
-"An emitter leak is a listener that lives longer than its owner. The closure keeps everything it touched alive, so it is not a few bytes. It is the whole state. Always return an unsubscribe and call it on cleanup."
+"An emitter leak is a listener that lives longer than its owner. The closure
+keeps everything it touched alive, so it is not a few bytes. It is the whole
+state. Always return an unsubscribe and call it on cleanup."
 
 ## 6. Variations they might ask for
 
 **Check:** Wildcard events, like bus.on("user:*", fn).
 
-Keep a second map of patterns, or check every registered name against the event being sent. Checking every pattern on each emit is slow if you have thousands. Fine for a handful. Also decide the order: exact matches first, then patterns, or strictly by the order they were added.
+Keep a second map of patterns, or check every registered name against the
+event being sent. Checking every pattern on each emit is slow if you have
+thousands. Fine for a handful. Also decide the order: exact matches first,
+then patterns, or strictly by the order they were added.
 
 **Check:** Should emit be synchronous?
 
-Node's is. Making it async, with `queueMicrotask` per listener, means a listener that throws cannot break the sender. But it changes the order things happen and makes debugging harder. Synchronous by default, and let the caller decide if they want to delay.
+Node's is. Making it async, with `queueMicrotask` per listener, means a
+listener that throws cannot break the sender. But it changes the order things
+happen and makes debugging harder. Synchronous by default, and let the caller
+decide if they want to delay.
 
 **Check:** How do you test an emitter?
 
-Check how many times each event ran, that arguments were passed through, that `once` ran exactly once, that unsubscribing really stops delivery, and that `off` works with a wrapped handler. Also test the remove-while-emitting case. That is the one most people forget.
+Check how many times each event ran, that arguments were passed through, that
+`once` ran exactly once, that unsubscribing really stops delivery, and that
+`off` works with a wrapped handler. Also test the remove-while-emitting case.
+That is the one most people forget.
 
 **Check:** How is this different from addEventListener?
 
-The DOM gives you capture and bubble phases, `preventDefault`, and control over propagation. An emitter is a flat list with no tree. If you need a tree, use the DOM. If you need modules that do not know about each other, use an emitter.
+The DOM gives you capture and bubble phases, `preventDefault`, and control
+over propagation. An emitter is a flat list with no tree. If you need a tree,
+use the DOM. If you need modules that do not know about each other, use an
+emitter.
 
 ## 7. Check yourself
 
 **Quiz:** Why loop over a copy of the listener list in emit?
 
 Options:
+
 - A. So a listener that unsubscribes does not skip the next one **← correct**
 - B. For speed
 - C. To run them in reverse
 
-Changing a list while looping is the bug. Copying is the fix. It costs one small allocation per emit.
+Changing a list while looping is the bug. Copying is the fix. It costs one
+small allocation per emit.
 
 **Check:** How could you build once without a wrapper?
 
-Store objects like `{ handler, once: true }` and have `emit` delete them after calling. That avoids the "the wrapper is not the same function" problem in `off`, at the cost of a slightly more complex `emit`. Both are fine. Pick one and say why.
+Store objects like `{ handler, once: true }` and have `emit` delete them after
+calling. That avoids the "the wrapper is not the same function" problem in
+`off`, at the cost of a slightly more complex `emit`. Both are fine. Pick one
+and say why.
 
 ---
 
@@ -3946,13 +4334,17 @@ Store objects like `{ handler, once: true }` and have `emit` delete them after c
 
 # classnames and JSON
 
-Two small helpers that appear as "write this library function" questions. One teaches API design. The other walks through the rules of turning data into text, which people get wrong for years.
+Two small helpers that appear as "write this library function" questions. One
+teaches API design. The other walks through the rules of turning data into
+text, which people get wrong for years.
 
 ## 1. classnames
 
-The job: take strings, arrays and objects, and return one string of class names. It exists because ``${on ? "a" : ""} ${off ? "b" : ""}`` is hard to read.
+The job: take strings, arrays and objects, and return one string of class
+names. It exists because ``${on ? "a" : ""} ${off ? "b" : ""}`` is hard to
+read.
 
-**classNames.js**
+*classNames.js*
 
 ```js
 function classNames(...args) {
@@ -3996,7 +4388,7 @@ console.log("nothing at all:", JSON.stringify(classNames()));
 - **The original does not remove duplicates.** If you add that, say so. It changes behaviour when a class appears twice on purpose.
 - **Return `""`, not `undefined`.** Joining `undefined` into a string gives the word "undefined".
 
-**version without duplicates**
+*version without duplicates*
 
 ```js
 function classNamesUnique(...args) {
@@ -4036,7 +4428,7 @@ console.log(classNamesUnique("p-4  m-2"));
 
 Six rules cover almost every question.
 
-**stringify-rules.js**
+*stringify-rules.js*
 
 ```js
 // 1. undefined, functions and symbols are left out of objects…
@@ -4068,7 +4460,7 @@ try { JSON.stringify(a); } catch (e) { console.log("self-reference:", e.name); }
 
 ### The replacer argument
 
-**replacer.js**
+*replacer.js*
 
 ```js
 const user = { id: 1, password: "hunter2", name: "ada", meta: { token: "abc" } };
@@ -4099,13 +4491,13 @@ cyclic.self = cyclic;
 console.log(safeStringify(cyclic));
 ```
 
-**Watch out**
+> **Key order is not what you typed**
 
-**Key order is not what you typed**
+Number-like keys always come first, in ascending order. Only then do the
+string keys follow in the order you added them. If order matters, use a `Map`
+or an array of pairs.
 
-Number-like keys always come first, in ascending order. Only then do the string keys follow in the order you added them. If order matters, use a `Map` or an array of pairs.
-
-**key-order.js**
+*key-order.js*
 
 ```js
 const obj = { b: 1, 2: "two", a: 2, 1: "one" };
@@ -4119,7 +4511,7 @@ console.log("map keys:", [...m.keys()]);
 
 ## 3. JSON.parse and the reviver
 
-**reviver.js**
+*reviver.js*
 
 ```js
 const payload = '{"id":"7","created":"2024-05-01T00:00:00.000Z","tags":"a,b"}';
@@ -4142,30 +4534,36 @@ catch (e) { console.log("bad JSON:", e.name); }
 console.log("simple values:", JSON.parse("1"), JSON.parse('"x"'), JSON.parse("null"));
 ```
 
-**Tip**
+> **The sentence that closes the topic**
 
-**The sentence that closes the topic**
-
-"JSON is a format for sending data, not a way to copy it. If I need a copy in memory, I use `structuredClone`. If I am sending data, I decide the shape on purpose. And I never send a `Date` without choosing a format for it first."
+"JSON is a format for sending data, not a way to copy it. If I need a copy in
+memory, I use `structuredClone`. If I am sending data, I decide the shape on
+purpose. And I never send a `Date` without choosing a format for it first."
 
 ## 4. Check yourself
 
 **Quiz:** What is JSON.stringify([undefined, function(){}])?
 
 Options:
+
 - A. `"[null,null]"` **← correct**
 - B. `"[]"`
 - C. `"[undefined,null]"`
 
-Inside arrays, values that cannot be turned into JSON become `null`, so the positions stay. Inside objects they are simply left out.
+Inside arrays, values that cannot be turned into JSON become `null`, so the
+positions stay. Inside objects they are simply left out.
 
 **Check:** Why does JSON.stringify throw on BigInt instead of converting?
 
-Because turning it into a normal number could lose precision. JSON has no integer type bigger than what JavaScript numbers hold. Throwing forces you to choose, and most people choose to send it as a string.
+Because turning it into a normal number could lose precision. JSON has no
+integer type bigger than what JavaScript numbers hold. Throwing forces you to
+choose, and most people choose to send it as a string.
 
 **Check:** What do classNames(0) and classNames("0") return?
 
-`""` and `"0"`. The number 0 counts as false, so it is dropped. The string "0" counts as true, so it is kept. That is why the false check must come before the number branch.
+`""` and `"0"`. The number 0 counts as false, so it is dropped. The string "0"
+counts as true, so it is kept. That is why the false check must come before
+the number branch.
 
 ---
 
@@ -4179,7 +4577,9 @@ Because turning it into a normal number could lose precision. JSON has no intege
 
 # How to run the interview
 
-Two people write the same correct debounce. One gets the job. The difference is almost never the code. It is whether the interviewer could follow the thinking, and whether the person knew the limits of what they wrote.
+Two people write the same correct debounce. One gets the job. The difference
+is almost never the code. It is whether the interviewer could follow the
+thinking, and whether the person knew the limits of what they wrote.
 
 ## 1. Before the call
 
@@ -4190,7 +4590,8 @@ Two people write the same correct debounce. One gets the job. The difference is 
 
 ## 2. Ask a few questions, then start
 
-Three or four questions is enough. Asking forever looks like stalling. These are the ones that change the code:
+Three or four questions is enough. Asking forever looks like stalling. These
+are the ones that change the code:
 
 | Question | Why it changes the answer |
 | --- | --- |
@@ -4202,11 +4603,11 @@ Three or four questions is enough. Asking forever looks like stalling. These are
 | "Should bad input throw or be ignored?" | Changes the error handling and the tests |
 | "Can the input contain itself?" | Decides whether you need a `WeakMap` |
 
-**Why this matters**
+> **Say your assumption out loud**
 
-**Say your assumption out loud**
-
-"I'll assume modern browsers and that the callback should keep the caller's `this`. Tell me if either is wrong." That turns a vague situation into a written decision. Senior engineers do the same thing in code review.
+"I'll assume modern browsers and that the callback should keep the caller's
+`this`. Tell me if either is wrong." That turns a vague situation into a
+written decision. Senior engineers do the same thing in code review.
 
 ## 3. The 35 minutes
 
@@ -4226,13 +4627,15 @@ Three or four questions is enough. Asking forever looks like stalling. These are
 - "I'm using the index instead of pushing, so the order matches the input."
 - "I'm skipping empty slots with an `in` check, because that is what the spec does."
 
-Each sentence tells the interviewer what to score. Silence makes them guess, and people guess low.
+Each sentence tells the interviewer what to score. Silence makes them guess,
+and people guess low.
 
 ## 4. Testing is scored
 
-Do not say "I think that's right". Write a small table. It takes 90 seconds and is worth more than adding another feature.
+Do not say "I think that's right". Write a small table. It takes 90 seconds
+and is worth more than adding another feature.
 
-**the table you draw in the interview**
+*the table you draw in the interview*
 
 ```js
 debounce(fn, 100)
@@ -4248,17 +4651,19 @@ arguments passed on      [a, b], not the arguments object
 wait = 0                 runs almost immediately
 ```
 
-Then actually run the interesting ones. If the platform cannot run code, walk through them out loud. That still shows the habit.
+Then actually run the interesting ones. If the platform cannot run code, walk
+through them out loud. That still shows the habit.
 
-**Watch out**
+> **Read your code again before saying "done"**
 
-**Read your code again before saying "done"**
-
-Thirty seconds of re-reading catches most real failures: a missing `return`, `=` instead of `===`, `this` inside an arrow, a variable used before it is set, and off-by-one loop limits.
+Thirty seconds of re-reading catches most real failures: a missing `return`,
+`=` instead of `===`, `this` inside an arrow, a variable used before it is
+set, and off-by-one loop limits.
 
 ## 5. Talking about tradeoffs
 
-Every question has a "which way did you go" moment. Name the choice, pick a side, and say what you gave up.
+Every question has a "which way did you go" moment. Name the choice, pick a
+side, and say what you gave up.
 
 | Choice | What to say |
 | --- | --- |
@@ -4279,9 +4684,10 @@ Every question has a "which way did you go" moment. Name the choice, pick a side
 
 ## 7. When they ask a follow-up
 
-A follow-up is good news. It means the first answer was acceptable. The shape of the answer is always: what changes, and what stays.
+A follow-up is good news. It means the first answer was acceptable. The shape
+of the answer is always: what changes, and what stays.
 
-**how a follow-up answer sounds**
+*how a follow-up answer sounds*
 
 ```js
 "Add cancel to debounce"
@@ -4297,41 +4703,54 @@ A follow-up is good news. It means the first answer was acceptable. The shape of
 
 ## 8. Mistakes to watch for
 
-**Coding in silence** Two minutes of typing with no words looks like guessing. Say what you are doing and why.
+**Coding in silence** Two minutes of typing with no words looks like guessing.
+Say what you are doing and why.
 
-**Optimising too early** Building an LRU when a Map would do. Get it correct, then offer the improvement.
+**Optimising too early** Building an LRU when a Map would do. Get it correct,
+then offer the improvement.
 
-**Claiming too much** "This handles everything" invites a counterexample. Say what it does not handle first.
+**Claiming too much** "This handles everything" invites a counterexample. Say
+what it does not handle first.
 
-**Ignoring a hint** If they ask "what about empty input?", answer it now. Do not keep going and come back later.
+**Ignoring a hint** If they ask "what about empty input?", answer it now. Do
+not keep going and come back later.
 
-**Fighting the editor** Ask how to run code early. Struggling with shortcuts under time pressure looks like inexperience.
+**Fighting the editor** Ask how to run code early. Struggling with shortcuts
+under time pressure looks like inexperience.
 
-**No tests** Finishing with "done" and no checks is the most common reason a correct answer scores mid.
+**No tests** Finishing with "done" and no checks is the most common reason a
+correct answer scores mid.
 
 ## 9. Words you can reuse
 
-**Say this in an interview**
+> **Opening**
 
-**Opening**
+"Before I code: I'll assume modern browsers, that the function should keep the
+caller's `this` and arguments, and that trailing is the default. I'll use a
+closure over the timer, then test the quick-calls case and the cancel case.
+Anything you want me to do first?"
 
-"Before I code: I'll assume modern browsers, that the function should keep the caller's `this` and arguments, and that trailing is the default. I'll use a closure over the timer, then test the quick-calls case and the cancel case. Anything you want me to do first?"
+> **Closing**
 
-**Say this in an interview**
-
-**Closing**
-
-"What I did not add: a `maxWait`, so a user who never stops typing never triggers a save. If that mattered, I would track the last real run and force one. I also did not test `this` inside a class method. I would use fake timers for all of these."
+"What I did not add: a `maxWait`, so a user who never stops typing never
+triggers a save. If that mattered, I would track the last real run and force
+one. I also did not test `this` inside a class method. I would use fake timers
+for all of these."
 
 ## 10. Check yourself
 
 **Check:** You finish in 20 minutes. What now?
 
-Test more edge cases, then improve one thing: add `cancel`, handle the empty input, or talk about complexity. Do not add features nobody asked for without saying so. Ask first: "would it help if I…"
+Test more edge cases, then improve one thing: add `cancel`, handle the empty
+input, or talk about complexity. Do not add features nobody asked for without
+saying so. Ask first: "would it help if I…"
 
 **Check:** At minute 25 you realise your approach is wrong. What do you do?
 
-Say it straight away. State the right approach in one sentence, then ask whether to rewrite or patch. Hiding it and quietly patching is worse. Interviewers score honesty and recovery, and a clean 8-minute rewrite often reads better than a messy patch.
+Say it straight away. State the right approach in one sentence, then ask
+whether to rewrite or patch. Hiding it and quietly patching is worse.
+Interviewers score honesty and recovery, and a clean 8-minute rewrite often
+reads better than a messy patch.
 
 ---
 
@@ -4345,11 +4764,14 @@ Say it straight away. State the right approach in one sentence, then ask whether
 
 # Practice and scoring
 
-Month 3 is not more reading. It is timed practice and reading real code. This page gives you a scoring sheet, six mock interviews, and the questions to ask while reading lodash.
+Month 3 is not more reading. It is timed practice and reading real code. This
+page gives you a scoring sheet, six mock interviews, and the questions to ask
+while reading lodash.
 
 ## 1. The scoring sheet
 
-Give yourself 1 to 4 on each line after every mock. Anything below 3 becomes next week's topic.
+Give yourself 1 to 4 on each line after every mock. Anything below 3 becomes
+next week's topic.
 
 | Skill | 1 (weak) | 3 (good) | 4 (strong) |
 | --- | --- | --- | --- |
@@ -4360,11 +4782,10 @@ Give yourself 1 to 4 on each line after every mock. Anything below 3 becomes nex
 | **Communication** | Silent coding | Says what they are doing | Says it, checks in, invites correction |
 | **Testing** | No tests | Walks through a few cases | Writes a table, runs it, fixes what fails out loud |
 
-**Tip**
+> **18 out of 24 is the target**
 
-**18 out of 24 is the target**
-
-A steady 3 everywhere beats 4s on correctness and 1s on communication. Interviewers are looking for a colleague, not a compiler.
+A steady 3 everywhere beats 4s on correctness and 1s on communication.
+Interviewers are looking for a colleague, not a compiler.
 
 ## 2. Six mocks, six weeks
 
@@ -4389,23 +4810,32 @@ A steady 3 everywhere beats 4s on correctness and 1s on communication. Interview
 
 ## 3. Ten-minute drills
 
-Short practice for days without a full block. One function, one edge case, one explanation.
+Short practice for days without a full block. One function, one edge case, one
+explanation.
 
-**Closures** Write `once`, `memoize`, a private counter, and the loop fix three ways.
+**Closures** Write `once`, `memoize`, a private counter, and the loop fix
+three ways.
 
-**this** Write `myCall`, `myApply`, `myBind`. Then predict five mixed call shapes.
+**this** Write `myCall`, `myApply`, `myBind`. Then predict five mixed call
+shapes.
 
-**Event loop** Write a snippet with a timer, a promise and an async function. Work out the order before you run it.
+**Event loop** Write a snippet with a timer, a promise and an async function.
+Work out the order before you run it.
 
-**Array methods** `map`, `filter`, `reduce`, `find`. Then say the spec details from memory.
+**Array methods** `map`, `filter`, `reduce`, `find`. Then say the spec details
+from memory.
 
-**Async** Write a mapper with a concurrency limit, and a timeout wrapper. Both without looking.
+**Async** Write a mapper with a concurrency limit, and a timeout wrapper. Both
+without looking.
 
-**DOM** A delegated click handler for a changing list, a walk for `getElementsByClassName`, and click-outside-to-close.
+**DOM** A delegated click handler for a changing list, a walk for
+`getElementsByClassName`, and click-outside-to-close.
 
 ## 4. Reading real source code
 
-The strongest signal in this whole plan is being able to say "I read how lodash does it, and here is why they need 200 lines." Read with these questions in hand.
+The strongest signal in this whole plan is being able to say "I read how
+lodash does it, and here is why they need 200 lines." Read with these
+questions in hand.
 
 ### lodash debounce
 
@@ -4427,11 +4857,12 @@ The strongest signal in this whole plan is being able to say "I read how lodash 
 - What happens if a listener is removed while `emit` runs?
 - Why does it treat one, two and three listeners as special cases? A fast path before the general loop.
 
-**Why this matters**
+> **A line to use in an interview**
 
-**A line to use in an interview**
-
-"I've read lodash's debounce. It is long because it supports `maxWait`, leading, trailing, cancel, flush and returning the last value, all in one function. The core is the same closure over a timer. The rest is option handling."
+"I've read lodash's debounce. It is long because it supports `maxWait`,
+leading, trailing, cancel, flush and returning the last value, all in one
+function. The core is the same closure over a timer. The rest is option
+handling."
 
 ## 5. The last week
 
@@ -4444,10 +4875,15 @@ The strongest signal in this whole plan is being able to say "I read how lodash 
 
 **Check:** You scored 2 on Testing twice in a row. What do you change?
 
-Make the test table a hard rule before running anything. Literally type "case / expected / actual" in the editor first. The habit has to be automatic, because under pressure you skip anything optional.
+Make the test table a hard rule before running anything. Literally type "case
+/ expected / actual" in the editor first. The habit has to be automatic,
+because under pressure you skip anything optional.
 
 **Check:** Why redo the same question instead of a new one?
 
-Because you are practising recall speed. A second pass removes the design uncertainty, so you can practise the part that is actually scored: talking through it, testing it, and naming tradeoffs. A new question practises discovery, which you have already done.
+Because you are practising recall speed. A second pass removes the design
+uncertainty, so you can practise the part that is actually scored: talking
+through it, testing it, and naming tradeoffs. A new question practises
+discovery, which you have already done.
 
 ---

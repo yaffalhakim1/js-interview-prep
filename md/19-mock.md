@@ -5,11 +5,14 @@
 
 # Practice and scoring
 
-Month 3 is not more reading. It is timed practice and reading real code. This page gives you a scoring sheet, six mock interviews, and the questions to ask while reading lodash.
+Month 3 is not more reading. It is timed practice and reading real code. This
+page gives you a scoring sheet, six mock interviews, and the questions to ask
+while reading lodash.
 
 ## 1. The scoring sheet
 
-Give yourself 1 to 4 on each line after every mock. Anything below 3 becomes next week's topic.
+Give yourself 1 to 4 on each line after every mock. Anything below 3 becomes
+next week's topic.
 
 | Skill | 1 (weak) | 3 (good) | 4 (strong) |
 | --- | --- | --- | --- |
@@ -20,11 +23,10 @@ Give yourself 1 to 4 on each line after every mock. Anything below 3 becomes nex
 | **Communication** | Silent coding | Says what they are doing | Says it, checks in, invites correction |
 | **Testing** | No tests | Walks through a few cases | Writes a table, runs it, fixes what fails out loud |
 
-**Tip**
+> **18 out of 24 is the target**
 
-**18 out of 24 is the target**
-
-A steady 3 everywhere beats 4s on correctness and 1s on communication. Interviewers are looking for a colleague, not a compiler.
+A steady 3 everywhere beats 4s on correctness and 1s on communication.
+Interviewers are looking for a colleague, not a compiler.
 
 ## 2. Six mocks, six weeks
 
@@ -49,23 +51,32 @@ A steady 3 everywhere beats 4s on correctness and 1s on communication. Interview
 
 ## 3. Ten-minute drills
 
-Short practice for days without a full block. One function, one edge case, one explanation.
+Short practice for days without a full block. One function, one edge case, one
+explanation.
 
-**Closures** Write `once`, `memoize`, a private counter, and the loop fix three ways.
+**Closures** Write `once`, `memoize`, a private counter, and the loop fix
+three ways.
 
-**this** Write `myCall`, `myApply`, `myBind`. Then predict five mixed call shapes.
+**this** Write `myCall`, `myApply`, `myBind`. Then predict five mixed call
+shapes.
 
-**Event loop** Write a snippet with a timer, a promise and an async function. Work out the order before you run it.
+**Event loop** Write a snippet with a timer, a promise and an async function.
+Work out the order before you run it.
 
-**Array methods** `map`, `filter`, `reduce`, `find`. Then say the spec details from memory.
+**Array methods** `map`, `filter`, `reduce`, `find`. Then say the spec details
+from memory.
 
-**Async** Write a mapper with a concurrency limit, and a timeout wrapper. Both without looking.
+**Async** Write a mapper with a concurrency limit, and a timeout wrapper. Both
+without looking.
 
-**DOM** A delegated click handler for a changing list, a walk for `getElementsByClassName`, and click-outside-to-close.
+**DOM** A delegated click handler for a changing list, a walk for
+`getElementsByClassName`, and click-outside-to-close.
 
 ## 4. Reading real source code
 
-The strongest signal in this whole plan is being able to say "I read how lodash does it, and here is why they need 200 lines." Read with these questions in hand.
+The strongest signal in this whole plan is being able to say "I read how
+lodash does it, and here is why they need 200 lines." Read with these
+questions in hand.
 
 ### lodash debounce
 
@@ -87,11 +98,12 @@ The strongest signal in this whole plan is being able to say "I read how lodash 
 - What happens if a listener is removed while `emit` runs?
 - Why does it treat one, two and three listeners as special cases? A fast path before the general loop.
 
-**Why this matters**
+> **A line to use in an interview**
 
-**A line to use in an interview**
-
-"I've read lodash's debounce. It is long because it supports `maxWait`, leading, trailing, cancel, flush and returning the last value, all in one function. The core is the same closure over a timer. The rest is option handling."
+"I've read lodash's debounce. It is long because it supports `maxWait`,
+leading, trailing, cancel, flush and returning the last value, all in one
+function. The core is the same closure over a timer. The rest is option
+handling."
 
 ## 5. The last week
 
@@ -104,11 +116,16 @@ The strongest signal in this whole plan is being able to say "I read how lodash 
 
 **Check:** You scored 2 on Testing twice in a row. What do you change?
 
-Make the test table a hard rule before running anything. Literally type "case / expected / actual" in the editor first. The habit has to be automatic, because under pressure you skip anything optional.
+Make the test table a hard rule before running anything. Literally type "case
+/ expected / actual" in the editor first. The habit has to be automatic,
+because under pressure you skip anything optional.
 
 **Check:** Why redo the same question instead of a new one?
 
-Because you are practising recall speed. A second pass removes the design uncertainty, so you can practise the part that is actually scored: talking through it, testing it, and naming tradeoffs. A new question practises discovery, which you have already done.
+Because you are practising recall speed. A second pass removes the design
+uncertainty, so you can practise the part that is actually scored: talking
+through it, testing it, and naming tradeoffs. A new question practises
+discovery, which you have already done.
 
 ---
 

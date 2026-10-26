@@ -5,23 +5,26 @@
 
 # The event loop
 
-JavaScript runs one function at a time. Everything else waits in a queue for its turn. Almost every "what is the output order" question can be answered with one rule, applied carefully.
+JavaScript runs one function at a time. Everything else waits in a queue for
+its turn. Almost every "what is the output order" question can be answered
+with one rule, applied carefully.
 
 ## 1. The four pieces
 
-**Call stack** Where normal code runs. One function at a time. When it is empty, JavaScript is free.
+**Call stack** Where normal code runs. One function at a time. When it is
+empty, JavaScript is free.
 
-**The browser (or Node)** Timers, network requests and click events wait here, outside JavaScript. When they finish, they put a callback in a queue.
+**The browser (or Node)** Timers, network requests and click events wait here,
+outside JavaScript. When they finish, they put a callback in a queue.
 
 **Task queue** `setTimeout`, `setInterval`, network callbacks, click events.
 
-**Microtask queue** Promise callbacks and `queueMicrotask`. This queue always goes first.
+**Microtask queue** Promise callbacks and `queueMicrotask`. This queue always
+goes first.
 
 ## 2. The rule
 
-**Why this matters**
-
-**Learn these three lines**
+> **Learn these three lines**
 
 1. Run all the normal code until the stack is empty.
 2. Then run **every** microtask, including any new ones they add.
@@ -29,7 +32,7 @@ JavaScript runs one function at a time. Everything else waits in a queue for its
 
 Drawing happens between tasks, not in the middle of one.
 
-**the classic question**
+*the classic question*
 
 ```js
 console.log("1");
@@ -45,13 +48,15 @@ console.log("5");
 
 **Check:** Work it out
 
-Normal code first: `1`, `5`. Then microtasks in the order they were added: `3`, `4`. Then the timer: `2`. So the answer is **1 5 3 4 2**.
+Normal code first: `1`, `5`. Then microtasks in the order they were added:
+`3`, `4`. Then the timer: `2`. So the answer is **1 5 3 4 2**.
 
 ## 3. Microtasks can add more microtasks
 
-The microtask queue is emptied completely. So a microtask that adds another microtask runs before any timer, even if the timer was set first.
+The microtask queue is emptied completely. So a microtask that adds another
+microtask runs before any timer, even if the timer was set first.
 
-**nested.js**
+*nested.js*
 
 ```js
 setTimeout(() => console.log("timer 1"), 0);
@@ -70,13 +75,17 @@ setTimeout(() => console.log("timer 2"), 0);
 
 `micro 1, micro 3, micro 2 (added inside), timer 1, timer 2`
 
-Why `micro 3` comes before `micro 2`: when the queue starts, both the first `then` and the chained `then` are already in it. The nested one is added at the end, so it waits. The timers only start when the queue is empty.
+Why `micro 3` comes before `micro 2`: when the queue starts, both the first
+`then` and the chained `then` are already in it. The nested one is added at
+the end, so it waits. The timers only start when the queue is empty.
 
 ## 4. How await fits in
 
-`await v` works like `Promise.resolve(v).then(rest)`. Everything after the `await` becomes a microtask. That one sentence explains every ordering question with async functions.
+`await v` works like `Promise.resolve(v).then(rest)`. Everything after the
+`await` becomes a microtask. That one sentence explains every ordering
+question with async functions.
 
-**async-order.js**
+*async-order.js*
 
 ```js
 async function one() {
@@ -100,13 +109,16 @@ console.log("sync end");
 
 **Check:** Show the order
 
-`sync start, one: start, two: start, sync end, one: after await, two: after await, plain then`
+`sync start, one: start, two: start, sync end, one: after await, two: after
+await, plain then`
 
-Each async function runs normally until its first `await`, then adds the rest to the microtask queue. The plain `then` was added after both of them, so it runs last.
+Each async function runs normally until its first `await`, then adds the rest
+to the microtask queue. The plain `then` was added after both of them, so it
+runs last.
 
 ## 5. Timers are not exact
 
-**delay.js**
+*delay.js*
 
 ```js
 const start = Date.now();
@@ -122,21 +134,25 @@ while (Date.now() < end) { /* busy for 120ms */ }
 console.log("blocking work finished");
 ```
 
-`setTimeout(fn, 0)` means "run this soon", not "run this now". It does not guarantee 0 milliseconds. If you need to measure work, use `performance.now()`, not timers.
+`setTimeout(fn, 0)` means "run this soon", not "run this now". It does not
+guarantee 0 milliseconds. If you need to measure work, use
+`performance.now()`, not timers.
 
 ## 6. Where drawing fits in
 
-The browser can only draw when JavaScript is not running. Within one frame: `requestAnimationFrame` callbacks run, then styles and layout, then the screen updates.
+The browser can only draw when JavaScript is not running. Within one frame:
+`requestAnimationFrame` callbacks run, then styles and layout, then the screen
+updates.
 
 - **Visual changes** go in `requestAnimationFrame`.
 - **Low-priority work** goes in `setTimeout(0)`, or better, `requestIdleCallback`.
 - **Work that must happen before drawing** goes in a microtask.
 
-**Watch out**
+> **A microtask loop freezes the page**
 
-**A microtask loop freezes the page**
-
-If a microtask keeps adding another microtask, the queue never empties. The browser never gets to draw or run timers. The tab freezes. That is why "wait a moment" code uses `setTimeout` and not a promise loop.
+If a microtask keeps adding another microtask, the queue never empties. The
+browser never gets to draw or run timers. The tab freezes. That is why "wait a
+moment" code uses `setTimeout` and not a promise loop.
 
 ## 7. How to work out any order question
 
@@ -146,7 +162,7 @@ If a microtask keeps adding another microtask, the queue never empties. The brow
 4. Then take one task. After it, empty the microtasks again. Repeat.
 5. `await` means "the rest is a microtask". `setTimeout` is a task.
 
-**mixed.js, try it before you look**
+*mixed.js, try it before you look*
 
 ```js
 async function main() {
@@ -169,32 +185,43 @@ console.log("script end");
 
 **Check:** Show the full order
 
-`script start, main start, inside the executor, script end, main continued, then A, timeout`
+`script start, main start, inside the executor, script end, main continued,
+then A, timeout`
 
-`main start` and the executor both run immediately. Two microtasks were added: `main`'s continuation first (the `await` happened before the `.then`), then `then A`.
+`main start` and the executor both run immediately. Two microtasks were added:
+`main`'s continuation first (the `await` happened before the `.then`), then
+`then A`.
 
 ## 8. Node works the same way
 
-Node has the same two queues with the same priority. It just groups the task queue into stages. `process.nextTick` has its own queue that runs before promise callbacks. You do not need the stage details for a front-end interview. "nextTick runs before promises, and both run before timers" is enough.
+Node has the same two queues with the same priority. It just groups the task
+queue into stages. `process.nextTick` has its own queue that runs before
+promise callbacks. You do not need the stage details for a front-end
+interview. "nextTick runs before promises, and both run before timers" is
+enough.
 
 ## 9. Check yourself
 
 **Quiz:** Which runs first: a setTimeout(…, 0) set before a promise's .then?
 
 Options:
+
 - A. The `.then`, because microtasks always go first **← correct**
 - B. The timer, because it was set first
 - C. It is random
 
-The queue matters more than the order you wrote them. Order only matters inside the same queue.
+The queue matters more than the order you wrote them. Order only matters
+inside the same queue.
 
 **Check:** Why does a 5-second loop freeze the whole page?
 
-The stack never becomes empty. So the event loop never reaches the point where it can run callbacks, animation frames or drawing. The page stops responding.
+The stack never becomes empty. So the event loop never reaches the point where
+it can run callbacks, animation frames or drawing. The page stops responding.
 
 **Check:** Does setTimeout(fn, 0) always run before a click handler?
 
-No. Both are tasks. Whichever was queued first runs first, and that depends on real timing. Never build logic on that assumption.
+No. Both are tasks. Whichever was queued first runs first, and that depends on
+real timing. Never build logic on that assumption.
 
 ---
 

@@ -5,7 +5,9 @@
 
 # Flatten
 
-Flatten takes a nested array and returns a flat one. It is an easy recursion question until you are asked for a depth limit, a version without recursion, or a generator. Each one tests a different skill.
+Flatten takes a nested array and returns a flat one. It is an easy recursion
+question until you are asked for a depth limit, a version without recursion,
+or a generator. Each one tests a different skill.
 
 ## 1. Ask these three questions first
 
@@ -15,7 +17,7 @@ Flatten takes a nested array and returns a flat one. It is an easy recursion que
 
 ## 2. The recursive version
 
-**flatten.js**
+*flatten.js*
 
 ```js
 function flatten(arr) {
@@ -44,13 +46,17 @@ console.log("depth 2:", flattenDepth(nested, 2));
 console.log("no limit:", flattenDepth(nested, Infinity));
 ```
 
-Watch `concat` here. `acc.concat(item)` spreads the array. `acc.concat([item])` would wrap it instead. That difference causes a lot of accidental double flattening.
+Watch `concat` here. `acc.concat(item)` spreads the array.
+`acc.concat([item])` would wrap it instead. That difference causes a lot of
+accidental double flattening.
 
 ### About the cost
 
-`concat` makes a new array at every level, so the recursive version can be O(n·d). Pushing into one shared array keeps it O(n). Worth mentioning if the input could be large.
+`concat` makes a new array at every level, so the recursive version can be
+O(n·d). Pushing into one shared array keeps it O(n). Worth mentioning if the
+input could be large.
 
-**flatten-push.js**
+*flatten-push.js*
 
 ```js
 function flattenFast(arr, out = []) {
@@ -66,9 +72,11 @@ console.log(flattenFast([1, [2, [3, [4]]]]));
 
 ## 3. Without recursion, when the stack is the problem
 
-Recursion is limited by the call stack, which holds a few thousand levels. A very deep input throws `RangeError: Maximum call stack size exceeded`. Using your own list has no such limit.
+Recursion is limited by the call stack, which holds a few thousand levels. A
+very deep input throws `RangeError: Maximum call stack size exceeded`. Using
+your own list has no such limit.
 
-**flatten-iterative.js**
+*flatten-iterative.js*
 
 ```js
 function flattenIterative(arr) {
@@ -106,15 +114,16 @@ function flattenIterative2(arr) {
 console.log(flattenIterative2([1, [2, [3, 4]], 5]));
 ```
 
-**Why this matters**
+> **Why show both**
 
-**Why show both**
-
-The first is five lines and what you would write under time pressure. It reverses at the end because `pop` reads backwards. The second keeps an explicit list of positions, so the order is right and a depth limit is easy to add. Being able to explain the tradeoff is worth more than either version.
+The first is five lines and what you would write under time pressure. It
+reverses at the end because `pop` reads backwards. The second keeps an
+explicit list of positions, so the order is right and a depth limit is easy to
+add. Being able to explain the tradeoff is worth more than either version.
 
 ## 4. A generator version
 
-**flatten-generator.js**
+*flatten-generator.js*
 
 ```js
 function* flattenGen(arr) {
@@ -138,11 +147,13 @@ const big = [[1, 2], [3, [4, 5]], [6]];
 console.log("first match:", firstMatch(big, (n) => n % 2 === 0 && n > 3));
 ```
 
-The generator is still recursive, so the stack limit still applies. But it gives you laziness and early exit. "Nothing is built until someone asks for it" is the sentence that earns the point.
+The generator is still recursive, so the stack limit still applies. But it
+gives you laziness and early exit. "Nothing is built until someone asks for
+it" is the sentence that earns the point.
 
 ## 5. Edge cases
 
-**edges.js**
+*edges.js*
 
 ```js
 function flatten(arr) {
@@ -170,11 +181,12 @@ const isIterable = (v) => v != null && typeof v !== "string" && Symbol.iterator 
 console.log("typed array counts:", isIterable(new Uint8Array([1, 2])));
 ```
 
-**Watch out**
+> **Arrays that contain themselves**
 
-**Arrays that contain themselves**
-
-`const a = [1]; a.push(a);` makes any recursive flatten loop forever or overflow the stack. JSON cannot contain loops, so this rarely happens. But asking "can the input contain itself?" before you code is exactly the kind of question interviewers like.
+`const a = [1]; a.push(a);` makes any recursive flatten loop forever or
+overflow the stack. JSON cannot contain loops, so this rarely happens. But
+asking "can the input contain itself?" before you code is exactly the kind of
+question interviewers like.
 
 ## 6. Follow-up questions
 
@@ -192,15 +204,20 @@ function flattenObject(obj, prefix = "", out = {}) {
 // { a: { b: { c: 1 } } } → { "a.b.c": 1 }
 ```
 
-Same recursion, different result. Say why you skip arrays. Turning them into index keys is usually not wanted.
+Same recursion, different result. Say why you skip arrays. Turning them into
+index keys is usually not wanted.
 
 **Check:** How is Array.prototype.flat(Infinity) different?
 
-It is built in. It removes empty slots completely instead of turning them into `undefined`. It also respects `Symbol.isConcatSpreadable`. Your version is the right approximation for an interview. Say that.
+It is built in. It removes empty slots completely instead of turning them into
+`undefined`. It also respects `Symbol.isConcatSpreadable`. Your version is the
+right approximation for an interview. Say that.
 
 **Check:** What is the complexity?
 
-O(n) items visited, O(n) space for the result. The recursive `concat` version also allocates at every level. The push version and the generator do not. Depth costs O(d) stack space.
+O(n) items visited, O(n) space for the result. The recursive `concat` version
+also allocates at every level. The push version and the generator do not.
+Depth costs O(d) stack space.
 
 ---
 

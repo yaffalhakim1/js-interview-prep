@@ -41,6 +41,7 @@ jobs:
         run: |
           node tools/build-md.js
           node tools/check-md.js
+          node tools/check-tidy.js
 
       - name: Assemble site
         run: |

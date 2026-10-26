@@ -5,7 +5,9 @@
 
 # How to run the interview
 
-Two people write the same correct debounce. One gets the job. The difference is almost never the code. It is whether the interviewer could follow the thinking, and whether the person knew the limits of what they wrote.
+Two people write the same correct debounce. One gets the job. The difference
+is almost never the code. It is whether the interviewer could follow the
+thinking, and whether the person knew the limits of what they wrote.
 
 ## 1. Before the call
 
@@ -16,7 +18,8 @@ Two people write the same correct debounce. One gets the job. The difference is 
 
 ## 2. Ask a few questions, then start
 
-Three or four questions is enough. Asking forever looks like stalling. These are the ones that change the code:
+Three or four questions is enough. Asking forever looks like stalling. These
+are the ones that change the code:
 
 | Question | Why it changes the answer |
 | --- | --- |
@@ -28,11 +31,11 @@ Three or four questions is enough. Asking forever looks like stalling. These are
 | "Should bad input throw or be ignored?" | Changes the error handling and the tests |
 | "Can the input contain itself?" | Decides whether you need a `WeakMap` |
 
-**Why this matters**
+> **Say your assumption out loud**
 
-**Say your assumption out loud**
-
-"I'll assume modern browsers and that the callback should keep the caller's `this`. Tell me if either is wrong." That turns a vague situation into a written decision. Senior engineers do the same thing in code review.
+"I'll assume modern browsers and that the callback should keep the caller's
+`this`. Tell me if either is wrong." That turns a vague situation into a
+written decision. Senior engineers do the same thing in code review.
 
 ## 3. The 35 minutes
 
@@ -52,13 +55,15 @@ Three or four questions is enough. Asking forever looks like stalling. These are
 - "I'm using the index instead of pushing, so the order matches the input."
 - "I'm skipping empty slots with an `in` check, because that is what the spec does."
 
-Each sentence tells the interviewer what to score. Silence makes them guess, and people guess low.
+Each sentence tells the interviewer what to score. Silence makes them guess,
+and people guess low.
 
 ## 4. Testing is scored
 
-Do not say "I think that's right". Write a small table. It takes 90 seconds and is worth more than adding another feature.
+Do not say "I think that's right". Write a small table. It takes 90 seconds
+and is worth more than adding another feature.
 
-**the table you draw in the interview**
+*the table you draw in the interview*
 
 ```js
 debounce(fn, 100)
@@ -74,17 +79,19 @@ arguments passed on      [a, b], not the arguments object
 wait = 0                 runs almost immediately
 ```
 
-Then actually run the interesting ones. If the platform cannot run code, walk through them out loud. That still shows the habit.
+Then actually run the interesting ones. If the platform cannot run code, walk
+through them out loud. That still shows the habit.
 
-**Watch out**
+> **Read your code again before saying "done"**
 
-**Read your code again before saying "done"**
-
-Thirty seconds of re-reading catches most real failures: a missing `return`, `=` instead of `===`, `this` inside an arrow, a variable used before it is set, and off-by-one loop limits.
+Thirty seconds of re-reading catches most real failures: a missing `return`,
+`=` instead of `===`, `this` inside an arrow, a variable used before it is
+set, and off-by-one loop limits.
 
 ## 5. Talking about tradeoffs
 
-Every question has a "which way did you go" moment. Name the choice, pick a side, and say what you gave up.
+Every question has a "which way did you go" moment. Name the choice, pick a
+side, and say what you gave up.
 
 | Choice | What to say |
 | --- | --- |
@@ -105,9 +112,10 @@ Every question has a "which way did you go" moment. Name the choice, pick a side
 
 ## 7. When they ask a follow-up
 
-A follow-up is good news. It means the first answer was acceptable. The shape of the answer is always: what changes, and what stays.
+A follow-up is good news. It means the first answer was acceptable. The shape
+of the answer is always: what changes, and what stays.
 
-**how a follow-up answer sounds**
+*how a follow-up answer sounds*
 
 ```js
 "Add cancel to debounce"
@@ -123,41 +131,54 @@ A follow-up is good news. It means the first answer was acceptable. The shape of
 
 ## 8. Mistakes to watch for
 
-**Coding in silence** Two minutes of typing with no words looks like guessing. Say what you are doing and why.
+**Coding in silence** Two minutes of typing with no words looks like guessing.
+Say what you are doing and why.
 
-**Optimising too early** Building an LRU when a Map would do. Get it correct, then offer the improvement.
+**Optimising too early** Building an LRU when a Map would do. Get it correct,
+then offer the improvement.
 
-**Claiming too much** "This handles everything" invites a counterexample. Say what it does not handle first.
+**Claiming too much** "This handles everything" invites a counterexample. Say
+what it does not handle first.
 
-**Ignoring a hint** If they ask "what about empty input?", answer it now. Do not keep going and come back later.
+**Ignoring a hint** If they ask "what about empty input?", answer it now. Do
+not keep going and come back later.
 
-**Fighting the editor** Ask how to run code early. Struggling with shortcuts under time pressure looks like inexperience.
+**Fighting the editor** Ask how to run code early. Struggling with shortcuts
+under time pressure looks like inexperience.
 
-**No tests** Finishing with "done" and no checks is the most common reason a correct answer scores mid.
+**No tests** Finishing with "done" and no checks is the most common reason a
+correct answer scores mid.
 
 ## 9. Words you can reuse
 
-**Say this in an interview**
+> **Opening**
 
-**Opening**
+"Before I code: I'll assume modern browsers, that the function should keep the
+caller's `this` and arguments, and that trailing is the default. I'll use a
+closure over the timer, then test the quick-calls case and the cancel case.
+Anything you want me to do first?"
 
-"Before I code: I'll assume modern browsers, that the function should keep the caller's `this` and arguments, and that trailing is the default. I'll use a closure over the timer, then test the quick-calls case and the cancel case. Anything you want me to do first?"
+> **Closing**
 
-**Say this in an interview**
-
-**Closing**
-
-"What I did not add: a `maxWait`, so a user who never stops typing never triggers a save. If that mattered, I would track the last real run and force one. I also did not test `this` inside a class method. I would use fake timers for all of these."
+"What I did not add: a `maxWait`, so a user who never stops typing never
+triggers a save. If that mattered, I would track the last real run and force
+one. I also did not test `this` inside a class method. I would use fake timers
+for all of these."
 
 ## 10. Check yourself
 
 **Check:** You finish in 20 minutes. What now?
 
-Test more edge cases, then improve one thing: add `cancel`, handle the empty input, or talk about complexity. Do not add features nobody asked for without saying so. Ask first: "would it help if I…"
+Test more edge cases, then improve one thing: add `cancel`, handle the empty
+input, or talk about complexity. Do not add features nobody asked for without
+saying so. Ask first: "would it help if I…"
 
 **Check:** At minute 25 you realise your approach is wrong. What do you do?
 
-Say it straight away. State the right approach in one sentence, then ask whether to rewrite or patch. Hiding it and quietly patching is worse. Interviewers score honesty and recovery, and a clean 8-minute rewrite often reads better than a messy patch.
+Say it straight away. State the right approach in one sentence, then ask
+whether to rewrite or patch. Hiding it and quietly patching is worse.
+Interviewers score honesty and recovery, and a clean 8-minute rewrite often
+reads better than a messy patch.
 
 ---
 

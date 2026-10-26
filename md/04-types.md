@@ -5,11 +5,16 @@
 
 # Types and conversion
 
-JavaScript has seven simple types and one object type. But `typeof` gives a wrong answer for two of them. And `==` converts values before comparing. Both cause confident wrong answers in interviews, so this page gives you the exact rules.
+JavaScript has seven simple types and one object type. But `typeof` gives a
+wrong answer for two of them. And `==` converts values before comparing. Both
+cause confident wrong answers in interviews, so this page gives you the exact
+rules.
 
 ## 1. The types
 
-Seven simple types: `string`, `number`, `boolean`, `null`, `undefined`, `symbol`, `bigint`. Everything else is an object. That includes arrays, functions, dates and maps.
+Seven simple types: `string`, `number`, `boolean`, `null`, `undefined`,
+`symbol`, `bigint`. Everything else is an object. That includes arrays,
+functions, dates and maps.
 
 | Value | `typeof` gives | Best way to check |
 | --- | --- | --- |
@@ -26,11 +31,13 @@ Seven simple types: `string`, `number`, `boolean`, `null`, `undefined`, `symbol`
 | `function(){}` | `"function"` | `typeof` |
 | `new Date()` | `"object"` | `x instanceof Date` |
 
-`typeof null === "object"` is a bug from 1995. It was kept because too much old code depends on it. Say that and you show you know it is not a design choice.
+`typeof null === "object"` is a bug from 1995. It was kept because too much
+old code depends on it. Say that and you show you know it is not a design
+choice.
 
 ### A check that works for almost everything
 
-**tag.js**
+*tag.js*
 
 ```js
 function tag(v) {
@@ -42,17 +49,18 @@ console.log(tag(new Map()), tag(new Set()), tag(/x/), tag(new Date()));
 console.log(tag(Promise.resolve()), tag(function () {}));
 ```
 
-**Watch out**
+> **Checking for an array**
 
-**Checking for an array**
-
-`typeof []` is `"object"`. And `[] instanceof Array` fails across iframes. That is exactly why `Array.isArray` exists.
+`typeof []` is `"object"`. And `[] instanceof Array` fails across iframes.
+That is exactly why `Array.isArray` exists.
 
 ## 2. Simple values act like objects
 
-`"abc".length` works even though a string is not an object. JavaScript wraps it in a `String` object for a moment, reads the property, then throws the wrapper away.
+`"abc".length` works even though a string is not an object. JavaScript wraps
+it in a `String` object for a moment, reads the property, then throws the
+wrapper away.
 
-**boxing.js**
+*boxing.js*
 
 ```js
 // Reading works: the engine wraps the string for a moment
@@ -76,11 +84,13 @@ console.log("types differ:", typeof s, "vs", typeof o);
 console.log("loose equal:", s == o, "· strict equal:", s === o);
 ```
 
-This is also why `new Boolean(false)` is a trap. It is an object, and every object counts as true. So `if (new Boolean(false))` runs the branch.
+This is also why `new Boolean(false)` is a trap. It is an object, and every
+object counts as true. So `if (new Boolean(false))` runs the branch.
 
 ## 3. == vs ===
 
-`===` checks the type first. Different types means `false` straight away. `==` converts the values to the same type first. The rules are fixed, not random.
+`===` checks the type first. Different types means `false` straight away. `==`
+converts the values to the same type first. The rules are fixed, not random.
 
 | Comparison | What happens | Result |
 | --- | --- | --- |
@@ -93,7 +103,7 @@ This is also why `new Boolean(false)` is a trap. It is an object, and every obje
 | `NaN == NaN` | NaN never equals anything | `false` |
 | `{} == {}` | two different objects | `false` |
 
-**try it**
+*try it*
 
 ```js
 const pairs = [
@@ -109,17 +119,17 @@ for (const [a, b] of pairs) {
 }
 ```
 
-**Tip**
+> **The one exception people allow**
 
-**The one exception people allow**
-
-`x == null` is a common way to say "null or undefined". That is accepted. For everything else, use `===`. If the types differ, fix the types instead of comparing them.
+`x == null` is a common way to say "null or undefined". That is accepted. For
+everything else, use `===`. If the types differ, fix the types instead of
+comparing them.
 
 ## 4. Which values count as false
 
 There are exactly eight. Everything else counts as true.
 
-**falsy.js**
+*falsy.js*
 
 ```js
 const falsy = [false, 0, -0, 0n, "", null, undefined, NaN];
@@ -134,13 +144,14 @@ console.log('" " is true:', Boolean(" "));
 console.log("new Boolean(false) is true:", Boolean(new Boolean(false)));
 ```
 
-A common bug: `if (value)` where `0` and `""` are valid input. Use `value !== undefined && value !== null` when 0 and empty string are allowed.
+A common bug: `if (value)` where `0` and `""` are valid input. Use `value !==
+undefined && value !== null` when 0 and empty string are allowed.
 
 ## 5. Operators that convert values
 
 ### + prefers strings
 
-**plus.js**
+*plus.js*
 
 ```js
 console.log(1 + 2);        // 3
@@ -153,11 +164,12 @@ console.log([1] + [2]);    // "12"
 
 ### The others prefer numbers
 
-`-`, `*`, `/` and `%` turn both sides into numbers. So `"6" / "2"` is `3`. That is why `+` is the dangerous one.
+`-`, `*`, `/` and `%` turn both sides into numbers. So `"6" / "2"` is `3`.
+That is why `+` is the dangerous one.
 
 ### NaN spreads through maths
 
-**nan.js**
+*nan.js*
 
 ```js
 console.log(Number("abc"));          // NaN
@@ -182,7 +194,8 @@ console.log("includes finds NaN:", [NaN].includes(NaN));  // true
 
 **Check:** Why is [] == false true?
 
-`false` becomes `0`. The array becomes `""` through `toString()`, and `""` becomes `0`. So it is `0 == 0`.
+`false` becomes `0`. The array becomes `""` through `toString()`, and `""`
+becomes `0`. So it is `0 == 0`.
 
 **Check:** Write a function that checks for a plain object.
 
@@ -194,11 +207,13 @@ function isPlainObject(v) {
 }
 ```
 
-Checking the prototype is better than checking the tag. It rejects arrays, maps, and class instances on purpose.
+Checking the prototype is better than checking the tag. It rejects arrays,
+maps, and class instances on purpose.
 
 **Check:** When should you use Object.is instead of ===?
 
-Two cases only: to detect `NaN`, and to tell `+0` from `-0`. Otherwise it behaves the same.
+Two cases only: to detect `NaN`, and to tell `+0` from `-0`. Otherwise it
+behaves the same.
 
 ---
 

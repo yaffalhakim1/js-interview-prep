@@ -5,13 +5,16 @@
 
 # Prototypes and classes
 
-Objects in JavaScript can point to another object. That link is called the prototype. When you read a property that is missing, JavaScript looks at the linked object. `class` is a shorter way to write the same thing.
+Objects in JavaScript can point to another object. That link is called the
+prototype. When you read a property that is missing, JavaScript looks at the
+linked object. `class` is a shorter way to write the same thing.
 
 ## 1. How lookup works
 
-Every object has a hidden link to another object, or to `null`. Reading a property follows that link until the property is found.
+Every object has a hidden link to another object, or to `null`. Reading a
+property follows that link until the property is found.
 
-**lookup.js**
+*lookup.js*
 
 ```js
 const animal = {
@@ -29,11 +32,15 @@ console.log("method call:", dog.speak());           // `this` is dog
 console.log("end of chain:", Object.getPrototypeOf(animal) === Object.prototype);
 ```
 
-Look at `dog.speak()`. The function is found on `animal`, but `this` is `dog`. Finding the method and setting `this` are two separate things. This confuses many people, so say it clearly.
+Look at `dog.speak()`. The function is found on `animal`, but `this` is `dog`.
+Finding the method and setting `this` are two separate things. This confuses
+many people, so say it clearly.
 
 ### Why put methods on the prototype?
 
-To save memory. A method on the prototype exists once. A method assigned inside the constructor exists once per object. With 10,000 rows in a table, that is 10,000 functions instead of one.
+To save memory. A method on the prototype exists once. A method assigned
+inside the constructor exists once per object. With 10,000 rows in a table,
+that is 10,000 functions instead of one.
 
 ## 2. What new does
 
@@ -44,7 +51,7 @@ Four steps, in this order:
 3. Call `Fn` with that object as `this`.
 4. If the function returns an object, use that. Otherwise use the new object.
 
-**myNew.js**
+*myNew.js*
 
 ```js
 function myNew(Fn, ...args) {
@@ -64,17 +71,17 @@ console.log(u.greet());
 console.log("is a User:", u instanceof User);
 ```
 
-**Why this matters**
+> **Step 4 is the one people forget**
 
-**Step 4 is the one people forget**
-
-If a constructor returns an object, that object wins and the new `this` is thrown away. Returning a number or string is ignored.
+If a constructor returns an object, that object wins and the new `this` is
+thrown away. Returning a number or string is ignored.
 
 ## 3. What class really is
 
-`class` is a shorter way to write the same code. Methods go on `prototype`. Static methods go on the class itself.
+`class` is a shorter way to write the same code. Methods go on `prototype`.
+Static methods go on the class itself.
 
-**same code, two ways**
+*same code, two ways*
 
 ```js
 // Old style
@@ -105,15 +112,15 @@ Differences that matter in an interview:
 | Strict mode | Only if you ask | Always on |
 | Inheritance | You wire it up yourself | `extends` and `super` |
 
-**Watch out**
+> **"Classes are not hoisted" is wrong**
 
-**"Classes are not hoisted" is wrong**
-
-They are hoisted. But the name cannot be used until the class line runs. You get `ReferenceError: Cannot access 'X' before initialization`. That is a different error from `X is not defined`.
+They are hoisted. But the name cannot be used until the class line runs. You
+get `ReferenceError: Cannot access 'X' before initialization`. That is a
+different error from `X is not defined`.
 
 ## 4. Inheritance with extends
 
-**extends.js**
+*extends.js*
 
 ```js
 class Shape {
@@ -137,11 +144,13 @@ console.log("is a Circle:", c instanceof Circle, "· is a Shape:", c instanceof 
 console.log("chain is linked:", Object.getPrototypeOf(Circle.prototype) === Shape.prototype);
 ```
 
-Two things to remember. `super()` must run before you use `this`, because the object does not exist until the parent constructor runs. And `instanceof` walks the chain, so a `Circle` is also a `Shape`.
+Two things to remember. `super()` must run before you use `this`, because the
+object does not exist until the parent constructor runs. And `instanceof`
+walks the chain, so a `Circle` is also a `Shape`.
 
 ## 5. Write instanceof yourself
 
-**myInstanceOf.js**
+*myInstanceOf.js*
 
 ```js
 function myInstanceOf(obj, Ctor) {
@@ -175,23 +184,31 @@ console.log("an object is not an Array:", myInstanceOf({}, Array));
 - **Mixing up `__proto__` and `prototype`.** `__proto__` is the link on an object. `prototype` is a property on a function that sets that link.
 - **Using `Object.create(null)` by accident.** You get an object with no methods at all, not even `hasOwnProperty`.
 
-**Say this in an interview**
+> **Say this in an interview**
 
-"Reading a property walks up the prototype chain. Writing always sets the value on the object itself. `new` makes an object, links it to `Fn.prototype`, calls the function with that object as `this`, and uses any returned object. `class` does the same thing with stricter rules."
+"Reading a property walks up the prototype chain. Writing always sets the
+value on the object itself. `new` makes an object, links it to `Fn.prototype`,
+calls the function with that object as `this`, and uses any returned object.
+`class` does the same thing with stricter rules."
 
 ## 7. Check yourself
 
 **Check:** Why does dog.speak() say "Rex" when speak lives on animal?
 
-The method is found on `animal`, but `this` comes from the call site. `dog.speak()` sets `this` to `dog`. Finding the code and setting the receiver are separate steps.
+The method is found on `animal`, but `this` comes from the call site.
+`dog.speak()` sets `this` to `dog`. Finding the code and setting the receiver
+are separate steps.
 
 **Check:** What happens if you call a class without new?
 
-`TypeError: Class constructor A cannot be invoked without 'new'`. An old function constructor would have run instead.
+`TypeError: Class constructor A cannot be invoked without 'new'`. An old
+function constructor would have run instead.
 
 **Check:** When would you use Object.create(null)?
 
-For a lookup table keyed by user input. A normal object already has keys like `toString`, so `obj["toString"]` gives a wrong answer. A null-prototype object has no inherited keys. Today a `Map` is usually a better choice.
+For a lookup table keyed by user input. A normal object already has keys like
+`toString`, so `obj["toString"]` gives a wrong answer. A null-prototype object
+has no inherited keys. Today a `Map` is usually a better choice.
 
 ---
 

@@ -5,15 +5,21 @@
 
 # Closures
 
-A closure is a scope that stays alive after its function returns. That is the whole idea. It is not a new feature and not a new kind of function. It is the name for what happens when an inner function keeps its outer scope alive. You will see why that matters in the first example.
+A closure is a scope that stays alive after its function returns. That is the
+whole idea. It is not a new feature and not a new kind of function. It is the
+name for what happens when an inner function keeps its outer scope alive. You
+will see why that matters in the first example.
 
 ## 1. What a closure is
 
-When you create a function, it remembers the variables around it. Those variables stay alive as long as the function exists.
+When you create a function, it remembers the variables around it. Those
+variables stay alive as long as the function exists.
 
-That is the mechanism. Now the question that matters: why would anyone care about a variable staying alive? Because it lets a function keep state between calls without using a global variable.
+That is the mechanism. Now the question that matters: why would anyone care
+about a variable staying alive? Because it lets a function keep state between
+calls without using a global variable.
 
-**closure.js**
+*closure.js*
 
 ```js
 function outer() {
@@ -30,21 +36,23 @@ const fn = outer();          // outer has finished running
 console.log(fn());           // 1, and x is still alive
 ```
 
-`outer()` has returned. Normally its variables would be gone. But `inner` still points at `x`, so `x` stays in memory. That is the whole idea.
+`outer()` has returned. Normally its variables would be gone. But `inner`
+still points at `x`, so `x` stays in memory. That is the whole idea.
 
 ## 2. The only thing that makes it a closure
 
-If a closure feels like "just a scope", you are right. It is a scope. The difference is what happens to that scope when the function returns.
+If a closure feels like "just a scope", you are right. It is a scope. The
+difference is what happens to that scope when the function returns.
 
-**Why this matters**
+> **A closure is a scope that did not die**
 
-**A closure is a scope that did not die**
-
-Normally a scope is thrown away when its function returns. A closure is the case where the scope stays alive, because a function still points at it. Nothing new is created. Something old is kept.
+Normally a scope is thrown away when its function returns. A closure is the
+case where the scope stays alive, because a function still points at it.
+Nothing new is created. Something old is kept.
 
 Here are two functions. The only difference is what each one returns.
 
-**A: returns a number**
+*A: returns a number*
 
 ```js
 function plain() {
@@ -57,9 +65,10 @@ console.log(plain());   // 1  <- it forgot
 console.log(plain());   // 1  <- it forgot again
 ```
 
-Every call makes a fresh `count`. When the call ends, that scope is thrown away. The next call starts from zero again.
+Every call makes a fresh `count`. When the call ends, that scope is thrown
+away. The next call starts from zero again.
 
-**B: returns a function**
+*B: returns a function*
 
 ```js
 function makeCounter() {
@@ -73,7 +82,9 @@ console.log(c());       // 2  <- it remembered
 console.log(c());       // 3  <- it remembered again
 ```
 
-Same `let count = 0`. Same scope. The difference is that `makeCounter` returned the inner function, and that function still points at `count`. So the scope cannot be thrown away. **That survival is the closure.**
+Same `let count = 0`. Same scope. The difference is that `makeCounter`
+returned the inner function, and that function still points at `count`. So the
+scope cannot be thrown away. **That survival is the closure.**
 
 |  | A: returns a number | B: returns a function |
 | --- | --- | --- |
@@ -85,9 +96,10 @@ Same `let count = 0`. Same scope. The difference is that `makeCounter` returned 
 
 ### The proof: two functions sharing one scope
 
-If the scope were copied, two functions could not see each other's changes. They can. That only works if they share one scope that is still alive.
+If the scope were copied, two functions could not see each other's changes.
+They can. That only works if they share one scope that is still alive.
 
-**shared scope**
+*shared scope*
 
 ```js
 function makeCounter() {
@@ -112,19 +124,24 @@ console.log("first counter:", counter.peek());   // 2
 console.log("second counter:", other.peek());    // 1
 ```
 
-`next` and `peek` share one `count`, because both were made inside the same call. `other` has its own `count`, because it came from a different call. So a closure is not one function remembering things. It is a scope that several functions share, which stays alive as long as any of them exists.
+`next` and `peek` share one `count`, because both were made inside the same
+call. `other` has its own `count`, because it came from a different call. So a
+closure is not one function remembering things. It is a scope that several
+functions share, which stays alive as long as any of them exists.
 
-**Tip**
+> **Why you cannot see a closure**
 
-**Why you cannot see a closure**
-
-Inside a single function call, a closure looks exactly like a normal scope. Nothing is different yet. You only notice it when a second call remembers something from the first. That is why the idea feels slippery: the effect only appears after the function has already finished.
+Inside a single function call, a closure looks exactly like a normal scope.
+Nothing is different yet. You only notice it when a second call remembers
+something from the first. That is why the idea feels slippery: the effect only
+appears after the function has already finished.
 
 ## 3. Why it works: scope
 
-JavaScript looks up a variable name by **where the function was written**, not where it was called. This is called lexical scope.
+JavaScript looks up a variable name by **where the function was written**, not
+where it was called. This is called lexical scope.
 
-**scope chain**
+*scope chain*
 
 ```js
 function outer() {
@@ -140,13 +157,16 @@ function outer() {
 }
 ```
 
-When `inner` asks for `x`, the engine checks three places in order: `inner`, then `middle`, then `outer`. This chain of scopes is fixed when the code is written. Renaming things at the call site does not change it.
+When `inner` asks for `x`, the engine checks three places in order: `inner`,
+then `middle`, then `outer`. This chain of scopes is fixed when the code is
+written. Renaming things at the call site does not change it.
 
 ## 4. Use 1: private state
 
-A closure lets you keep data that outside code cannot touch. You only expose the functions you choose.
+A closure lets you keep data that outside code cannot touch. You only expose
+the functions you choose.
 
-**counter.js**
+*counter.js*
 
 ```js
 function createCounter(start = 0) {
@@ -167,13 +187,15 @@ console.log("value:", c.value);
 console.log("can I read count directly?", c.count);   // undefined
 ```
 
-`count` is not a property of the returned object. So nobody outside can read or change it. They must go through `increment` and `decrement`.
+`count` is not a property of the returned object. So nobody outside can read
+or change it. They must go through `increment` and `decrement`.
 
 ### Short example: run a function only once
 
-This is a common interview question. The answer is one variable that remembers whether we already ran.
+This is a common interview question. The answer is one variable that remembers
+whether we already ran.
 
-**once.js**
+*once.js*
 
 ```js
 function once(fn) {
@@ -200,9 +222,11 @@ The second and third calls return the saved value. They do not run `fn` again.
 
 ## 5. Closures remember the variable, not the value
 
-This part confuses many people. A closure does not copy the number. It keeps a link to the variable. If the variable changes later, the closure sees the new value.
+This part confuses many people. A closure does not copy the number. It keeps a
+link to the variable. If the variable changes later, the closure sees the new
+value.
 
-**same variable**
+*same variable*
 
 ```js
 function makeAdders() {
@@ -217,11 +241,13 @@ function makeAdders() {
 console.log(makeAdders().map(f => f()));   // [3, 3, 3]
 ```
 
-All three functions were created inside the same `var i` loop. So all three read the same `i`. By the time we call them, the loop has finished and `i` is 3. The output is `[3, 3, 3]`.
+All three functions were created inside the same `var i` loop. So all three
+read the same `i`. By the time we call them, the loop has finished and `i` is
+3. The output is `[3, 3, 3]`.
 
 ### Three ways to fix it
 
-**three fixes**
+*three fixes*
 
 ```js
 // 1. `let` creates a new variable on every loop run
@@ -242,19 +268,21 @@ for (var k = 0; k < 3; k++) c.push(makeGetter(k));
 console.log(a.map(f => f()), b.map(f => f()), c.map(f => f()));
 ```
 
-**Watch out**
+> **The same trap with setTimeout**
 
-**The same trap with setTimeout**
-
-`for (var i = 0; i < 3; i++) setTimeout(() => console.log(i))` prints `3 3 3`. The timers run after the loop has finished. Change `var` to `let` and you get `0 1 2`.
+`for (var i = 0; i < 3; i++) setTimeout(() => console.log(i))` prints `3 3 3`.
+The timers run after the loop has finished. Change `var` to `let` and you get
+`0 1 2`.
 
 Interviewers use this to test closures and timers at the same time.
 
 ## 6. Old values: the stale closure bug
 
-A closure sees the live variable. So if a callback is created once and the variable changes later, the callback may read an old value. This is a real bug you will meet in React.
+A closure sees the live variable. So if a callback is created once and the
+variable changes later, the callback may read an old value. This is a real bug
+you will meet in React.
 
-**stale.js**
+*stale.js*
 
 ```js
 function attach() {
@@ -268,13 +296,17 @@ function attach() {
 console.log("read after change:", attach()());   // 42, not 0
 ```
 
-In React the same thing happens with `setInterval`. The callback is created once, so it keeps printing the first `count` forever. The fix is a dependency array or a ref.
+In React the same thing happens with `setInterval`. The callback is created
+once, so it keeps printing the first `count` forever. The fix is a dependency
+array or a ref.
 
 ## 7. Memory: what keeps a closure alive
 
-A closure keeps its variables in memory while anything can still call it. Usually that is good. It becomes a leak when a long-lived listener holds something large.
+A closure keeps its variables in memory while anything can still call it.
+Usually that is good. It becomes a leak when a long-lived listener holds
+something large.
 
-**leak.js**
+*leak.js*
 
 ```js
 // Leak: this listener lives forever and holds `hugeModel`
@@ -288,11 +320,11 @@ function setup() {
 }
 ```
 
-**Tip**
+> **A good sentence to say**
 
-**A good sentence to say**
-
-"A closure keeps its variables alive. The leak is not the closure itself. It is a listener or timer that stays attached after we are done with it. Remove the listener and the memory is freed."
+"A closure keeps its variables alive. The leak is not the closure itself. It
+is a listener or timer that stays attached after we are done with it. Remove
+the listener and the memory is freed."
 
 ## 8. Where closures appear in questions
 
@@ -305,9 +337,11 @@ function setup() {
 | Event emitter | The list of listeners |
 | Private state | Variables the outside cannot see |
 
-**Say this in an interview**
+> **Say this in an interview**
 
-"A closure is a function that remembers the scope where it was created. In this debounce, the returned function remembers `timer` and `lastArgs`. So the state survives between calls, and the caller cannot see it."
+"A closure is a function that remembers the scope where it was created. In
+this debounce, the returned function remembers `timer` and `lastArgs`. So the
+state survives between calls, and the caller cannot see it."
 
 ## 9. Check yourself
 
@@ -322,19 +356,26 @@ function build() {
 console.log(build()[0](), build()[1]());
 ```
 
-`2 2`. Both functions read the same `var`, which ends at 2. Each `build()` call makes a new scope, but inside one call both functions share it.
+`2 2`. Both functions read the same `var`, which ends at 2. Each `build()`
+call makes a new scope, but inside one call both functions share it.
 
 **Check:** Why does once save the result?
 
-Because the first call may return something useful. If later calls returned `undefined`, callers would get different types at different times. Saving the value keeps the behaviour predictable.
+Because the first call may return something useful. If later calls returned
+`undefined`, callers would get different types at different times. Saving the
+value keeps the behaviour predictable.
 
 **Check:** Does a closure copy a variable or keep a link to it?
 
-It keeps a link. If you change the variable later, the closure sees the new value. To get a separate copy, create a new variable. That is what `let` does on each loop run.
+It keeps a link. If you change the variable later, the closure sees the new
+value. To get a separate copy, create a new variable. That is what `let` does
+on each loop run.
 
 **Check:** How would you explain a stale closure to a friend?
 
-"The callback was made earlier and never updated. So it keeps reading the value from when it was made. To fix it, make the callback again when the value changes, or read the value from something stable like a ref."
+"The callback was made earlier and never updated. So it keeps reading the
+value from when it was made. To fix it, make the callback again when the value
+changes, or read the value from something stable like a ref."
 
 ---
 

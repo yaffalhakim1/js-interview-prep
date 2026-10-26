@@ -5,21 +5,25 @@
 
 # Event emitter
 
-An event emitter lets one part of your code announce that something happened, and other parts listen. It is about forty lines, and it is a good test of object design. How do you store listeners? How do you remove one? What if a listener removes itself while you are calling the others?
+An event emitter lets one part of your code announce that something happened,
+and other parts listen. It is about forty lines, and it is a good test of
+object design. How do you store listeners? How do you remove one? What if a
+listener removes itself while you are calling the others?
 
 ## 1. The idea
 
-Keep a map from event name to a list of functions. `on` adds one. `off` removes one. `emit` calls them all. Everything else is a variation on that.
+Keep a map from event name to a list of functions. `on` adds one. `off`
+removes one. `emit` calls them all. Everything else is a variation on that.
 
-**Why this matters**
+> **Why interviewers use this question**
 
-**Why interviewers use this question**
-
-There is no algorithm to hide behind. What is left is design. Does `on` return a way to unsubscribe? What does `emit` return? What if a listener throws? Each choice is a sentence you have to defend.
+There is no algorithm to hide behind. What is left is design. Does `on` return
+a way to unsubscribe? What does `emit` return? What if a listener throws? Each
+choice is a sentence you have to defend.
 
 ## 2. The code
 
-**EventEmitter.js**
+*EventEmitter.js*
 
 ```js
 class EventEmitter {
@@ -107,17 +111,20 @@ console.log("listeners left:", bus.count("save"));
 | Empty event | removed from the map | Stops the map growing with empty entries |
 | `off` with no handler | removes all for that event | Matches Node, and it is the usual cleanup call |
 
-**Watch out**
+> **The bug that bites: changing the list while looping**
 
-**The bug that bites: changing the list while looping**
-
-If you loop over the live `Set` and a listener removes itself, the loop skips the next listener. It silently never runs. Copying with `[...set]` prevents it. It is the same class of bug as removing items from a live `HTMLCollection`.
+If you loop over the live `Set` and a listener removes itself, the loop skips
+the next listener. It silently never runs. Copying with `[...set]` prevents
+it. It is the same class of bug as removing items from a live
+`HTMLCollection`.
 
 ## 4. What if a listener throws?
 
-In the code above, the error reaches whoever called `emit` and the remaining listeners are skipped. Node's emitter does the same. Whether that is right depends on what you are building.
+In the code above, the error reaches whoever called `emit` and the remaining
+listeners are skipped. Node's emitter does the same. Whether that is right
+depends on what you are building.
 
-**isolate.js**
+*isolate.js*
 
 ```js
 class SafeEmitter {
@@ -150,11 +157,13 @@ bus.on("tick", () => console.log("the second listener still ran"));
 bus.emit("tick");
 ```
 
-Catching each error is usually right for UI events like logging and analytics. It is usually wrong for data pipelines, where a failure should stop everything. Say which one you are building.
+Catching each error is usually right for UI events like logging and analytics.
+It is usually wrong for data pipelines, where a failure should stop
+everything. Say which one you are building.
 
 ## 5. Memory leaks: the real-world failure
 
-**leak.js**
+*leak.js*
 
 ```js
 // A component listens when it mounts…
@@ -181,44 +190,61 @@ Four ways this leaks in real code:
 3. You use one global bus for everything, including per-request listeners.
 4. You add a `once` listener for an event that never happens.
 
-**Tip**
+> **One sentence that explains it**
 
-**One sentence that explains it**
-
-"An emitter leak is a listener that lives longer than its owner. The closure keeps everything it touched alive, so it is not a few bytes. It is the whole state. Always return an unsubscribe and call it on cleanup."
+"An emitter leak is a listener that lives longer than its owner. The closure
+keeps everything it touched alive, so it is not a few bytes. It is the whole
+state. Always return an unsubscribe and call it on cleanup."
 
 ## 6. Variations they might ask for
 
 **Check:** Wildcard events, like bus.on("user:*", fn).
 
-Keep a second map of patterns, or check every registered name against the event being sent. Checking every pattern on each emit is slow if you have thousands. Fine for a handful. Also decide the order: exact matches first, then patterns, or strictly by the order they were added.
+Keep a second map of patterns, or check every registered name against the
+event being sent. Checking every pattern on each emit is slow if you have
+thousands. Fine for a handful. Also decide the order: exact matches first,
+then patterns, or strictly by the order they were added.
 
 **Check:** Should emit be synchronous?
 
-Node's is. Making it async, with `queueMicrotask` per listener, means a listener that throws cannot break the sender. But it changes the order things happen and makes debugging harder. Synchronous by default, and let the caller decide if they want to delay.
+Node's is. Making it async, with `queueMicrotask` per listener, means a
+listener that throws cannot break the sender. But it changes the order things
+happen and makes debugging harder. Synchronous by default, and let the caller
+decide if they want to delay.
 
 **Check:** How do you test an emitter?
 
-Check how many times each event ran, that arguments were passed through, that `once` ran exactly once, that unsubscribing really stops delivery, and that `off` works with a wrapped handler. Also test the remove-while-emitting case. That is the one most people forget.
+Check how many times each event ran, that arguments were passed through, that
+`once` ran exactly once, that unsubscribing really stops delivery, and that
+`off` works with a wrapped handler. Also test the remove-while-emitting case.
+That is the one most people forget.
 
 **Check:** How is this different from addEventListener?
 
-The DOM gives you capture and bubble phases, `preventDefault`, and control over propagation. An emitter is a flat list with no tree. If you need a tree, use the DOM. If you need modules that do not know about each other, use an emitter.
+The DOM gives you capture and bubble phases, `preventDefault`, and control
+over propagation. An emitter is a flat list with no tree. If you need a tree,
+use the DOM. If you need modules that do not know about each other, use an
+emitter.
 
 ## 7. Check yourself
 
 **Quiz:** Why loop over a copy of the listener list in emit?
 
 Options:
+
 - A. So a listener that unsubscribes does not skip the next one **← correct**
 - B. For speed
 - C. To run them in reverse
 
-Changing a list while looping is the bug. Copying is the fix. It costs one small allocation per emit.
+Changing a list while looping is the bug. Copying is the fix. It costs one
+small allocation per emit.
 
 **Check:** How could you build once without a wrapper?
 
-Store objects like `{ handler, once: true }` and have `emit` delete them after calling. That avoids the "the wrapper is not the same function" problem in `off`, at the cost of a slightly more complex `emit`. Both are fine. Pick one and say why.
+Store objects like `{ handler, once: true }` and have `emit` delete them after
+calling. That avoids the "the wrapper is not the same function" problem in
+`off`, at the cost of a slightly more complex `emit`. Both are fine. Pick one
+and say why.
 
 ---
 

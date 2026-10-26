@@ -70,6 +70,68 @@ function fence(lang, code) {
   return bar + (lang || "") + "\n" + code.replace(/\s+$/, "") + "\n" + bar;
 }
 
+/**
+ * Wrap prose at a comfortable width. Hard-wrapping makes diffs readable and
+ * stops every paragraph from being one 200-character line.
+ *
+ * Fenced code, tables, lists, blockquotes and headings pass through untouched:
+ * reflowing code would destroy its indentation and comment alignment.
+ */
+function wrap(text, width = 78) {
+  const out = [];
+  let inFence = false;
+  let fenceBar = "";
+
+  for (const para of text.split("\n")) {
+    // Track fenced blocks so nothing inside them is touched.
+    const fenceMatch = para.match(/^(`{3,})/);
+    if (fenceMatch) {
+      if (!inFence) {
+        inFence = true;
+        fenceBar = fenceMatch[1];
+      } else if (para.startsWith(fenceBar)) {
+        inFence = false;
+      }
+      out.push(para);
+      continue;
+    }
+    if (inFence) {
+      out.push(para);
+      continue;
+    }
+
+    if (!para.trim()) {
+      out.push("");
+      continue;
+    }
+
+    // Never reflow lines that are structural, or that contain a link: breaking
+    // a line inside [text](url) produces a broken link.
+    if (/^\s*[|>#<]|^\s*[-*+]\s|^\s*\d+\.\s|^ {2,}|`{3,}/.test(para)) {
+      out.push(para);
+      continue;
+    }
+    if (/\]\(/.test(para) || /^\s*(←|→)/.test(para)) {
+      out.push(para);
+      continue;
+    }
+
+    let line = "";
+    for (const word of para.split(/\s+/)) {
+      if (!line) {
+        line = word;
+      } else if ((line + " " + word).length <= width) {
+        line += " " + word;
+      } else {
+        out.push(line);
+        line = word;
+      }
+    }
+    if (line) out.push(line);
+  }
+  return out.join("\n");
+}
+
 function renderCodeBlock(block) {
   const bar = H.find(block, "div");
   let label = "";
@@ -86,36 +148,39 @@ function renderCodeBlock(block) {
   if (/^(bash|sh|powershell|pwsh)$/i.test(label.split(/[.\s]/)[0] || "")) lang = "bash";
   if (/^(json)$/i.test(label)) lang = "json";
 
-  const header = label ? "**" + label + "**\n\n" : "";
-  return header + fence(lang, code);
+  // A caption line reads better than stuffing the label into the info string,
+  // which most renderers show as a language badge.
+  const caption = label ? "*" + label + "*\n\n" : "";
+  return caption + fence(lang, code);
 }
 
 function renderCallout(block) {
   const kind = ["why", "gotcha", "tip", "say"].find((k) => H.hasClass(block, k));
   const marker = {
-    why: "**Why this matters**",
-    gotcha: "**Watch out**",
-    tip: "**Tip**",
-    say: "**Say this in an interview**",
-  }[kind] || "**Note**";
+    why: "Why this matters",
+    gotcha: "Watch out",
+    tip: "Tip",
+    say: "Say this in an interview",
+  }[kind] || "Note";
 
   // The icon column and the content column are siblings
   const cols = block.children.filter((c) => c.tag === "div");
   const content = cols[cols.length - 1];
   if (!content) return "";
 
-  // The callout heading often repeats the marker ("Say this in an interview"),
-  // so drop it when it duplicates.
-  const markerText = marker.replace(/\*\*/g, "").toLowerCase();
-  const children = (content.children || []).filter((c) => {
-    if (c.tag !== "h4") return true;
-    return H.textOf(c).toLowerCase() !== markerText;
-  });
+  const h4 = (content.children || []).find((c) => c.tag === "h4");
+  const heading = h4 ? H.textOf(h4) : "";
 
-  // Plain text, not a blockquote: quoted code blocks force the reader to strip
-  // "> " from every line when copying.
+  const children = (content.children || []).filter((c) => c.tag !== "h4");
   const body = renderBlocks({ children }, { inCallout: true });
-  return body ? marker + "\n\n" + body : marker;
+
+  // One blockquote line marks the callout. The body stays plain text so that
+  // code inside it can be copied without stripping "> " from every line.
+  const label = heading && heading.toLowerCase() !== marker.toLowerCase()
+    ? "> **" + heading + "**"
+    : "> **" + marker + "**";
+
+  return body ? label + "\n\n" + body : label;
 }
 
 function renderTable(wrap) {
@@ -156,7 +221,9 @@ function renderDetails(det) {
   if (isQuiz) {
     const opts = H.findAll(det, "div").filter((d) => H.hasClass(d, "opt"));
     if (opts.length) {
-      parts.push("Options:");
+      // A blank line is required before a list, or the parser treats it as
+      // part of the preceding paragraph.
+      parts.push("Options:\n");
       for (const opt of opts) {
         const correct = H.hasClass(opt, "correct");
         parts.push("- " + H.inlineBlock(opt) + (correct ? " **← correct**" : ""));
@@ -399,8 +466,14 @@ for (const group of NAV) {
       "",
     ].join("\n");
 
+    // Reflow prose to a readable width, leaving code, tables and lists alone.
+    const tidy = wrap(doc, 78)
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/[ \t]+$/gm, "")
+      .trimEnd() + "\n";
+
     const outFile = path.join(OUT, num + "-" + id + ".md");
-    fs.writeFileSync(outFile, doc, "utf8");
+    fs.writeFileSync(outFile, tidy, "utf8");
     files.push({ num, id, title, file: num + "-" + id + ".md", group });
   }
 }
@@ -437,7 +510,11 @@ const indexDoc = [
   ...tocLines,
 ].join("\n");
 
-fs.writeFileSync(path.join(OUT, "index.md"), indexDoc, "utf8");
+fs.writeFileSync(
+  path.join(OUT, "index.md"),
+  wrap(indexDoc, 78).replace(/\n{3,}/g, "\n\n").trimEnd() + "\n",
+  "utf8"
+);
 
 /* COURSE.md — everything in one file */
 

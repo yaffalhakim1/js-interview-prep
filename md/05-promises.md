@@ -5,13 +5,18 @@
 
 # Promises and async/await
 
-A promise is a placeholder for a value that is not ready yet. Using one is easy. The interview questions are about three details: each `then` returns a new promise, errors travel down the chain, and `async` is just a shorter way to write `then`.
+A promise is a placeholder for a value that is not ready yet. Using one is
+easy. The interview questions are about three details: each `then` returns a
+new promise, errors travel down the chain, and `async` is just a shorter way
+to write `then`.
 
 ## 1. Three states, and only one change
 
-A promise starts as **pending**. Then it becomes either **fulfilled** with a value, or **rejected** with a reason. Once it changes, it never changes again. Calling `resolve` twice does nothing the second time.
+A promise starts as **pending**. Then it becomes either **fulfilled** with a
+value, or **rejected** with a reason. Once it changes, it never changes again.
+Calling `resolve` twice does nothing the second time.
 
-**settles once**
+*settles once*
 
 ```js
 const p = new Promise((resolve, reject) => {
@@ -26,13 +31,17 @@ p.then(v => console.log("value:", v));
 console.log("this line runs after the executor");
 ```
 
-The function you pass to `new Promise` runs straight away. But the callback you pass to `.then` waits. It goes into a queue and runs after the current code finishes. That is why promise questions are really queue questions.
+The function you pass to `new Promise` runs straight away. But the callback
+you pass to `.then` waits. It goes into a queue and runs after the current
+code finishes. That is why promise questions are really queue questions.
 
 ## 2. Each then makes a new promise
 
-`then` does not change the original promise. It returns a new one, filled with whatever your callback returns. That is how chains work. It is also where most real bugs come from.
+`then` does not change the original promise. It returns a new one, filled with
+whatever your callback returns. That is how chains work. It is also where most
+real bugs come from.
 
-**chaining.js**
+*chaining.js*
 
 ```js
 Promise.resolve(1)
@@ -48,17 +57,19 @@ Promise.resolve(1)
   .finally(() => console.log("finally always runs"));
 ```
 
-**Watch out**
+> **Forgetting return**
 
-**Forgetting return**
-
-`.then(() => fetchUser())` waits for the fetch. `.then(() => { fetchUser(); })` does not. The chain continues with `undefined` while the fetch is still running. Mention this before the interviewer asks.
+`.then(() => fetchUser())` waits for the fetch. `.then(() => { fetchUser();
+})` does not. The chain continues with `undefined` while the fetch is still
+running. Mention this before the interviewer asks.
 
 ## 3. How errors travel
 
-A rejection skips every `then` until it reaches a `catch`. Throwing inside a `then` also rejects the new promise. So `throw` and `return Promise.reject()` have the same effect one step down the chain.
+A rejection skips every `then` until it reaches a `catch`. Throwing inside a
+`then` also rejects the new promise. So `throw` and `return Promise.reject()`
+have the same effect one step down the chain.
 
-**errors.js**
+*errors.js*
 
 ```js
 function step(n) {
@@ -88,9 +99,11 @@ step(1)
 
 ## 4. async and await
 
-An `async` function always returns a promise. A `throw` inside it becomes a rejection. `await` pauses the function until the promise finishes, then gives you the value.
+An `async` function always returns a promise. A `throw` inside it becomes a
+rejection. `await` pauses the function until the promise finishes, then gives
+you the value.
 
-**same code, two ways**
+*same code, two ways*
 
 ```js
 // with then
@@ -106,7 +119,7 @@ async function load() {
 }
 ```
 
-**errors.js**
+*errors.js*
 
 ```js
 async function fails() {
@@ -129,17 +142,20 @@ async function handled() {
 handled().then(v => console.log("returned:", v));
 ```
 
-**Watch out**
+> **await inside a loop runs one at a time**
 
-**await inside a loop runs one at a time**
-
-`for (const id of ids) await load(id)` waits for each one before starting the next. Sometimes that is what you want. Sometimes it makes the code 10 times slower. The parallel version is `await Promise.all(ids.map(load))`. Say which you chose and why. That is the point of the question.
+`for (const id of ids) await load(id)` waits for each one before starting the
+next. Sometimes that is what you want. Sometimes it makes the code 10 times
+slower. The parallel version is `await Promise.all(ids.map(load))`. Say which
+you chose and why. That is the point of the question.
 
 ## 5. When the callbacks actually run
 
-Each `then` callback and each `await` waits in a queue. That queue runs after the current code, but before the next timer. The next page covers this fully. Here is the shape you need now:
+Each `then` callback and each `await` waits in a queue. That queue runs after
+the current code, but before the next timer. The next page covers this fully.
+Here is the shape you need now:
 
-**order.js**
+*order.js*
 
 ```js
 console.log("A");
@@ -157,13 +173,14 @@ console.log("F");
 
 **Check:** Show the order
 
-`A, D, F, C, E, B`. Normal code runs first: A, D, F. Then the promise callbacks in order: C, then E. The timer runs last.
+`A, D, F, C, E, B`. Normal code runs first: A, D, F. Then the promise
+callbacks in order: C, then E. The timer runs last.
 
 ## 6. Four traps
 
 ### 1. An async function does not throw straight away
 
-**sync-try.js**
+*sync-try.js*
 
 ```js
 async function bad() { throw new Error("nope"); }
@@ -181,7 +198,7 @@ bad().catch((e) => console.log("handled separately:", e.message));
 
 ### 2. An async callback inside forEach is not awaited
 
-**foreach.js**
+*foreach.js*
 
 ```js
 // Wrong: forEach does not wait, so this finishes immediately
@@ -195,11 +212,13 @@ await Promise.all(items.map((item) => save(item)));
 
 ### 3. An unhandled rejection is a real error
 
-In Node it can stop the program. In the browser it appears in the console. Either way, every promise needs a `catch`, or must be returned to a caller who will handle it.
+In Node it can stop the program. In the browser it appears in the console.
+Either way, every promise needs a `catch`, or must be returned to a caller who
+will handle it.
 
 ### 4. Promise.resolve accepts anything
 
-**normalise.js**
+*normalise.js*
 
 ```js
 // You can call .then on a plain value
@@ -219,7 +238,9 @@ console.log("same promise:", Promise.resolve(p) === p);
 
 **Check:** After .catch(), does the next .then() run?
 
-Yes, unless the catch itself throws. A catch handler that returns a value produces a fulfilled promise, so the chain continues. That is how you recover from an error and carry on.
+Yes, unless the catch itself throws. A catch handler that returns a value
+produces a fulfilled promise, so the chain continues. That is how you recover
+from an error and carry on.
 
 **Check:** What does this print?
 
@@ -229,11 +250,14 @@ p.then(v => console.log("a", v));
 p.then(v => console.log("b", v));
 ```
 
-`a 1` then `b 1`. Callbacks run in the order you added them, and each one gets the same value. A promise can have many listeners.
+`a 1` then `b 1`. Callbacks run in the order you added them, and each one gets
+the same value. A promise can have many listeners.
 
 **Check:** Why can you not cancel a promise?
 
-The language has no cancellation for promises. The work carries on. You can only stop listening to the result. In real code you use `AbortController` to stop the work itself, or check a flag before acting on the result.
+The language has no cancellation for promises. The work carries on. You can
+only stop listening to the result. In real code you use `AbortController` to
+stop the work itself, or check a flag before acting on the result.
 
 ---
 
