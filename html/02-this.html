@@ -16,25 +16,129 @@
     <p class="eyebrow">Month 1 · Language basics</p>
     <h1>The <code>this</code> keyword</h1>
     <p class="lead">
-      <code>this</code> is the object a function is working on. Its value is
-      decided when you <strong>call</strong> the function, not when you write it.
-      There are four rules. Learn them in order and you can answer any question
-      about <code>this</code>.
+      <code>this</code> answers one question: <strong>which object is this function
+      working on?</strong> The function does not decide the answer. The code that
+      <em>calls</em> it decides. Once that clicks, the four rules are just the four
+      ways to call a function.
     </p>
 
-    <h2 id="rules">The four rules</h2>
-    <p>Check them from top to bottom. The first rule that matches wins.</p>
+    <h2 id="what">What <code>this</code> actually is</h2>
+    <p>
+      Start with a problem. You have a function that prints a greeting. You want it
+      to work for many people, not just one.
+    </p>
+
+    <p>
+      You could pass the person in as an argument:
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">without this</span><span class="spacer"></span></div>
+<pre data-run><code>function greet(person) {
+  return "Hello, " + person.name;
+}
+
+const alice = { name: "Alice" };
+const bob = { name: "Bob" };
+
+console.log(greet(alice));   // Hello, Alice
+console.log(greet(bob));     // Hello, Bob</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      That works. But now watch what happens when you put the function
+      <em>on</em> the object instead:
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">with this</span><span class="spacer"></span></div>
+<pre data-run><code>const alice = {
+  name: "Alice",
+  greet() { return "Hello, " + this.name; }   // `this` = whoever is before the dot
+};
+
+const bob = {
+  name: "Bob",
+  greet() { return "Hello, " + this.name; }
+};
+
+console.log(alice.greet());   // Hello, Alice
+console.log(bob.greet());     // Hello, Bob</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      Same function body. Two different answers. Nothing was passed in.
+      <code>this</code> was filled in by the call itself.
+    </p>
+
+    <div class="callout why">
+      <span class="ic">?</span>
+      <div>
+        <h4>The whole idea in one line</h4>
+        <p>
+          <strong><code>this</code> is the object written before the dot.</strong>
+          <code>alice.greet()</code> makes <code>this</code> equal
+          <code>alice</code>. <code>bob.greet()</code> makes it <code>bob</code>.
+          One function, reused, no argument needed.
+        </p>
+      </div>
+    </div>
+
+    <h3>Why not just pass the object in?</h3>
+    <p>
+      Because it lets many objects share one function. Look at the memory cost:
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">shared vs copied</span><span class="spacer"></span></div>
+<pre data-run><code>function greet() { return "Hello, " + this.name; }
+
+// Each object points at the SAME function
+const alice = { name: "Alice", greet };
+const bob = { name: "Bob", greet };
+
+console.log("same function?", alice.greet === bob.greet);   // true
+console.log("different results:", alice.greet(), "·", bob.greet());</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <p>
+      One function on the prototype, a thousand objects using it, and
+      <code>this</code> tells it which object it is serving right now. That is the
+      reason <code>this</code> exists.
+    </p>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>Why this feels slippery</h4>
+        <p>
+          You cannot read <code>this</code> off the function. You have to look at
+          the line that <em>calls</em> it. The function is the same in both objects
+          above. Only the call site differs. That is why the rules below are about
+          <em>calling</em>, not about writing.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="rules">The four ways to call a function</h2>
+    <p>
+      Every call is one of four shapes. The shape decides <code>this</code>. Check
+      them from top to bottom. The first one that matches wins.
+    </p>
 
     <div class="tablewrap">
       <table>
         <thead>
-          <tr><th>Order</th><th>Rule</th><th>How you call it</th><th><code>this</code> becomes</th></tr>
+          <tr><th>Order</th><th>Name</th><th>You wrote</th><th>So <code>this</code> is</th><th>Plain English</th></tr>
         </thead>
         <tbody>
-          <tr><td class="num">1</td><td><code>new</code></td><td><code>new Fn()</code></td><td>the new object</td></tr>
-          <tr><td class="num">2</td><td>Explicit</td><td><code>fn.call(o)</code></td><td>whatever you passed</td></tr>
-          <tr><td class="num">3</td><td>Implicit</td><td><code>obj.fn()</code></td><td><code>obj</code></td></tr>
-          <tr><td class="num">4</td><td>Default</td><td><code>fn()</code></td><td><code>undefined</code> in strict mode</td></tr>
+          <tr><td class="num">1</td><td><code>new</code></td><td><code>new Person()</code></td><td>the brand new object</td><td>"Make a fresh object and use it."</td></tr>
+          <tr><td class="num">2</td><td>You choose</td><td><code>fn.call(alice)</code></td><td>what you passed in</td><td>"Use this object, I'm telling you which."</td></tr>
+          <tr><td class="num">3</td><td>The dot</td><td><code>alice.fn()</code></td><td><code>alice</code></td><td>"Use the thing before the dot."</td></tr>
+          <tr><td class="num">4</td><td>Nothing</td><td><code>fn()</code></td><td><code>undefined</code></td><td>"No object given. There is nothing to use."</td></tr>
         </tbody>
       </table>
     </div>
@@ -73,8 +177,12 @@ console.log("new wins:", new BoundPerson("grace").name);</code></pre>
 
     <h2 id="lost">The most common bug: losing <code>this</code></h2>
     <p>
-      Rule 3 depends on the object being there at the call. If you move the
-      function into a variable, the object is gone.
+      Rule 3 says <code>this</code> is the thing before the dot. So what happens
+      when there is no dot? The object is gone.
+    </p>
+    <p>
+      This bites in one very common situation: you take a method out of an object
+      to use it somewhere else.
     </p>
 
     <div class="codeblock">
@@ -85,20 +193,29 @@ const user = {
   greet() { return `hi, ${this.name}`; }
 };
 
+// With the dot: `this` is user
 console.log("normal call:", user.greet());
 
-const detached = user.greet;   // the object is no longer attached
-
+// Without the dot: the object is gone
+const detached = user.greet;
 try {
-  detached();                  // `this` is undefined here
+  detached();
 } catch (e) {
   console.log("detached fails:", e.message);
 }
 
+// Fix it: glue the object back on
 const safe = user.greet.bind(user);
 console.log("after bind:", safe());</code></pre>
       <div class="out"></div>
     </div>
+
+    <p>
+      <code>detached()</code> has no object before the dot. So
+      <code>this</code> is <code>undefined</code>, and
+      <code>this.name</code> throws. The function did not change. Only the call
+      changed.
+    </p>
 
     <div class="callout gotcha">
       <span class="ic">!</span>
@@ -114,10 +231,15 @@ console.log("after bind:", safe());</code></pre>
       </div>
     </div>
 
-    <h2 id="arrows">Arrow functions do not have their own <code>this</code></h2>
+    <h2 id="arrows">Arrow functions ignore all of this</h2>
     <p>
-      An arrow function borrows <code>this</code> from the code around it. It also
-      ignores <code>call</code>, <code>apply</code> and <code>bind</code>.
+      An arrow function has no <code>this</code> of its own. It borrows the
+      <code>this</code> from the code around it, permanently. It also ignores
+      <code>call</code>, <code>apply</code> and <code>bind</code>.
+    </p>
+    <p>
+      That is either exactly what you want, or a bug. Here is the same timer
+      written both ways:
     </p>
 
     <div class="codeblock">
@@ -147,8 +269,9 @@ timer.works();</code></pre>
     </div>
 
     <p>
-      Simple rule: use <code>function</code> when <code>this</code> must come from
-      the caller. Use an arrow when you want the <code>this</code> from around it.
+      So: use <code>function</code> when <code>this</code> must come from whoever
+      calls it. Use an arrow when you want the <code>this</code> from the code
+      around it. Inside a method, that almost always means an arrow.
     </p>
 
     <h3>Arrow functions also have no <code>arguments</code></h3>
@@ -309,8 +432,69 @@ try {
       the right first word in your answer.
     </p>
 
-    <h2 id="check">Check yourself</h2>
+    <h2 id="recap">Putting it together</h2>
+    <p>
+      Before you answer any <code>this</code> question, do three things in order.
+    </p>
 
+    <div class="grid two">
+      <div class="card">
+        <h4>1. Find the call</h4>
+        <p>Not the function. Scroll to the line that actually runs it. That line holds the answer.</p>
+      </div>
+      <div class="card">
+        <h4>2. Look just before the bracket</h4>
+        <p>Is there a dot? Then <code>this</code> is what is before it. No dot? Nothing to use.</p>
+      </div>
+      <div class="card">
+        <h4>3. Check for a trap</h4>
+        <p>Is it an arrow? Then ignore steps 1 and 2, and look at where it was written instead.</p>
+      </div>
+    </div>
+
+    <p>
+      Work through four calls to the same function. All four give a different
+      answer, and you can predict each one before running it.
+    </p>
+
+    <div class="codeblock">
+      <div class="bar"><span class="label">predict, then run</span><span class="spacer"></span></div>
+<pre data-run><code>"use strict";
+function whoAmI() { return this === undefined ? "nobody" : this.name; }
+
+const alice = { name: "Alice", whoAmI };
+const bob = { name: "Bob" };
+
+// 1. There is a dot. `this` is alice.
+console.log("alice.whoAmI()      →", alice.whoAmI());
+
+// 2. No dot. `this` is undefined.
+console.log("whoAmI()            →", whoAmI());
+
+// 3. You chose bob yourself.
+console.log("whoAmI.call(bob)    →", whoAmI.call(bob));
+
+// 4. `new` beats everything, including the dot.
+const fresh = new alice.whoAmI();
+console.log("new alice.whoAmI()  →", fresh.name === undefined ? "the new object" : fresh.name);</code></pre>
+      <div class="out"></div>
+    </div>
+
+    <div class="callout tip">
+      <span class="ic">✓</span>
+      <div>
+        <h4>The one-sentence version</h4>
+        <p>
+          <strong><code>this</code> is the object before the dot at the call
+          site.</strong> Everything else in this page is a special case of that
+          sentence. <code>new</code> puts a fresh object before the dot.
+          <code>call</code> and <code>bind</code> let you write the object yourself.
+          An arrow has no dot of its own, so it borrows the one from around it.
+        </p>
+      </div>
+    </div>
+
+    <h2 id="check">Check yourself</h2>
     <details class="quiz">
       <summary>What is <code>this</code> in <code>obj.method.call(other)</code>?</summary>
       <div class="opts">

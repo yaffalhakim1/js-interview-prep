@@ -5,18 +5,90 @@
 
 # The this keyword
 
-`this` is the object a function is working on. Its value is decided when you **call** the function, not when you write it. There are four rules. Learn them in order and you can answer any question about `this`.
+`this` answers one question: **which object is this function working on?** The function does not decide the answer. The code that *calls* it decides. Once that clicks, the four rules are just the four ways to call a function.
 
-## 1. The four rules
+## 1. What this actually is
 
-Check them from top to bottom. The first rule that matches wins.
+Start with a problem. You have a function that prints a greeting. You want it to work for many people, not just one.
 
-| Order | Rule | How you call it | `this` becomes |
-| --- | --- | --- | --- |
-| 1 | `new` | `new Fn()` | the new object |
-| 2 | Explicit | `fn.call(o)` | whatever you passed |
-| 3 | Implicit | `obj.fn()` | `obj` |
-| 4 | Default | `fn()` | `undefined` in strict mode |
+You could pass the person in as an argument:
+
+**without this**
+
+```js
+function greet(person) {
+  return "Hello, " + person.name;
+}
+
+const alice = { name: "Alice" };
+const bob = { name: "Bob" };
+
+console.log(greet(alice));   // Hello, Alice
+console.log(greet(bob));     // Hello, Bob
+```
+
+That works. But now watch what happens when you put the function *on* the object instead:
+
+**with this**
+
+```js
+const alice = {
+  name: "Alice",
+  greet() { return "Hello, " + this.name; }   // `this` = whoever is before the dot
+};
+
+const bob = {
+  name: "Bob",
+  greet() { return "Hello, " + this.name; }
+};
+
+console.log(alice.greet());   // Hello, Alice
+console.log(bob.greet());     // Hello, Bob
+```
+
+Same function body. Two different answers. Nothing was passed in. `this` was filled in by the call itself.
+
+**Why this matters**
+
+**The whole idea in one line**
+
+**`this` is the object written before the dot.** `alice.greet()` makes `this` equal `alice`. `bob.greet()` makes it `bob`. One function, reused, no argument needed.
+
+### Why not just pass the object in?
+
+Because it lets many objects share one function. Look at the memory cost:
+
+**shared vs copied**
+
+```js
+function greet() { return "Hello, " + this.name; }
+
+// Each object points at the SAME function
+const alice = { name: "Alice", greet };
+const bob = { name: "Bob", greet };
+
+console.log("same function?", alice.greet === bob.greet);   // true
+console.log("different results:", alice.greet(), "·", bob.greet());
+```
+
+One function on the prototype, a thousand objects using it, and `this` tells it which object it is serving right now. That is the reason `this` exists.
+
+**Tip**
+
+**Why this feels slippery**
+
+You cannot read `this` off the function. You have to look at the line that *calls* it. The function is the same in both objects above. Only the call site differs. That is why the rules below are about *calling*, not about writing.
+
+## 2. The four ways to call a function
+
+Every call is one of four shapes. The shape decides `this`. Check them from top to bottom. The first one that matches wins.
+
+| Order | Name | You wrote | So `this` is | Plain English |
+| --- | --- | --- | --- | --- |
+| 1 | `new` | `new Person()` | the brand new object | "Make a fresh object and use it." |
+| 2 | You choose | `fn.call(alice)` | what you passed in | "Use this object, I'm telling you which." |
+| 3 | The dot | `alice.fn()` | `alice` | "Use the thing before the dot." |
+| 4 | Nothing | `fn()` | `undefined` | "No object given. There is nothing to use." |
 
 **rules.js**
 
@@ -46,9 +118,11 @@ console.log("new wins:", new BoundPerson("grace").name);
 
 The last line surprises people. `new` wins over `bind`. `new` creates a fresh object and uses that as `this`, so the bound value is ignored for that call.
 
-## 2. The most common bug: losing this
+## 3. The most common bug: losing this
 
-Rule 3 depends on the object being there at the call. If you move the function into a variable, the object is gone.
+Rule 3 says `this` is the thing before the dot. So what happens when there is no dot? The object is gone.
+
+This bites in one very common situation: you take a method out of an object to use it somewhere else.
 
 **lost-this.js**
 
@@ -59,19 +133,23 @@ const user = {
   greet() { return `hi, ${this.name}`; }
 };
 
+// With the dot: `this` is user
 console.log("normal call:", user.greet());
 
-const detached = user.greet;   // the object is no longer attached
-
+// Without the dot: the object is gone
+const detached = user.greet;
 try {
-  detached();                  // `this` is undefined here
+  detached();
 } catch (e) {
   console.log("detached fails:", e.message);
 }
 
+// Fix it: glue the object back on
 const safe = user.greet.bind(user);
 console.log("after bind:", safe());
 ```
+
+`detached()` has no object before the dot. So `this` is `undefined`, and `this.name` throws. The function did not change. Only the call changed.
 
 **Watch out**
 
@@ -79,9 +157,11 @@ console.log("after bind:", safe());
 
 The wrapper inside `debounce` must pass the caller's `this` through. It does that with `fn.apply(this, args)`. If you write the wrapper as an arrow, it captures `this` from where debounce was created, and every method that uses it breaks.
 
-## 3. Arrow functions do not have their own this
+## 4. Arrow functions ignore all of this
 
-An arrow function borrows `this` from the code around it. It also ignores `call`, `apply` and `bind`.
+An arrow function has no `this` of its own. It borrows the `this` from the code around it, permanently. It also ignores `call`, `apply` and `bind`.
+
+That is either exactly what you want, or a bug. Here is the same timer written both ways:
 
 **arrows.js**
 
@@ -109,7 +189,7 @@ timer.broken();
 timer.works();
 ```
 
-Simple rule: use `function` when `this` must come from the caller. Use an arrow when you want the `this` from around it.
+So: use `function` when `this` must come from whoever calls it. Use an arrow when you want the `this` from the code around it. Inside a method, that almost always means an arrow.
 
 ### Arrow functions also have no arguments
 
@@ -127,7 +207,7 @@ const modern = (...args) => args.length;
 console.log("rest parameter:", modern(1, 2, 3));
 ```
 
-## 4. call, apply and bind
+## 5. call, apply and bind
 
 | Method | How you pass arguments | What it returns |
 | --- | --- | --- |
@@ -185,7 +265,7 @@ console.log(describe.myBind(p)("Nice"));
 - `bind` must keep working with `new`. That is what the `new.target` check does.
 - A bound `this` cannot be overridden by a later `call`.
 
-## 5. Classes and methods
+## 6. Classes and methods
 
 Methods on a class live on the prototype, so they use rule 3. That means they also lose `this` when detached.
 
@@ -216,7 +296,7 @@ try {
 
 The arrow property has a cost. It creates one function per instance instead of one shared function on the prototype. Worth mentioning if you are asked about performance.
 
-## 6. Two edge cases
+## 7. Two edge cases
 
 ### 1. this inside a map callback
 
@@ -243,7 +323,48 @@ try {
 
 In a module, top-level `this` is `undefined`. In an old script it is `window`. In Node it is `module.exports`. Same keyword, three answers. So "it depends" is the right first word in your answer.
 
-## 7. Check yourself
+## 8. Putting it together
+
+Before you answer any `this` question, do three things in order.
+
+**1. Find the call** Not the function. Scroll to the line that actually runs it. That line holds the answer.
+
+**2. Look just before the bracket** Is there a dot? Then `this` is what is before it. No dot? Nothing to use.
+
+**3. Check for a trap** Is it an arrow? Then ignore steps 1 and 2, and look at where it was written instead.
+
+Work through four calls to the same function. All four give a different answer, and you can predict each one before running it.
+
+**predict, then run**
+
+```js
+"use strict";
+function whoAmI() { return this === undefined ? "nobody" : this.name; }
+
+const alice = { name: "Alice", whoAmI };
+const bob = { name: "Bob" };
+
+// 1. There is a dot. `this` is alice.
+console.log("alice.whoAmI()      →", alice.whoAmI());
+
+// 2. No dot. `this` is undefined.
+console.log("whoAmI()            →", whoAmI());
+
+// 3. You chose bob yourself.
+console.log("whoAmI.call(bob)    →", whoAmI.call(bob));
+
+// 4. `new` beats everything, including the dot.
+const fresh = new alice.whoAmI();
+console.log("new alice.whoAmI()  →", fresh.name === undefined ? "the new object" : fresh.name);
+```
+
+**Tip**
+
+**The one-sentence version**
+
+**`this` is the object before the dot at the call site.** Everything else in this page is a special case of that sentence. `new` puts a fresh object before the dot. `call` and `bind` let you write the object yourself. An arrow has no dot of its own, so it borrows the one from around it.
+
+## 9. Check yourself
 
 **Quiz:** What is this in obj.method.call(other)?
 
